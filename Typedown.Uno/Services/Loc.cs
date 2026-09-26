@@ -7,6 +7,17 @@ public static class Loc
 {
     private static readonly Dictionary<string, string> En = new()
     {
+        ["CopyContent"] = "Copy Content",
+        ["CtrlAndClickOpenLink"] = "Ctrl+Click to Open Link",
+        ["InputFootnoteDefine"] = "Input Footnote Definition...",
+        ["InputYAMLFrontMatter"] = "Input YAML Front Matter...",
+        ["InputMathFormula"] = "Input Math...",
+        ["InputLanguageIdentifier"] = "Input Language Identifier...",
+        ["ClickToAddAnImage"] = "Click to add an image",
+        ["LoadImageFail"] = "Failed to Load Image",
+        ["FootnoteNotFound"] = "Footnote marker not found [^{identifier}]:",
+        ["Create"] = "Create",
+        ["GoTo"] = "Go to",
         ["File"] = "File", ["New"] = "New", ["NewTab"] = "New tab", ["Open"] = "Open…", ["OpenFolder"] = "Open folder…", ["Recent"] = "Open recent",
         ["NoRecent"] = "(none)", ["ClearRecent"] = "Clear list", ["Save"] = "Save", ["SaveAs"] = "Save as…", ["ExportHtml"] = "Export HTML…",
         ["ShareHedgeDoc"] = "Share to HedgeDoc…", ["Settings"] = "Settings…", ["CloseTab"] = "Close tab", ["Exit"] = "Exit",

@@ -265,5 +265,16 @@
   "ImageFailed": "The picture could not be written.",
   "NextTab": "Next tab",
   "PreviousTab": "Previous tab",
-  "LastUsedTab": "Last used tab"
+  "LastUsedTab": "Last used tab",
+  "CopyContent": "Copy Content",
+  "CtrlAndClickOpenLink": "Ctrl+Click to Open Link",
+  "InputFootnoteDefine": "Input Footnote Definition...",
+  "InputYAMLFrontMatter": "Input YAML Front Matter...",
+  "InputMathFormula": "Input Math...",
+  "InputLanguageIdentifier": "Input Language Identifier...",
+  "ClickToAddAnImage": "Click to add an image",
+  "LoadImageFail": "Failed to Load Image",
+  "FootnoteNotFound": "Footnote marker not found [^{identifier}]:",
+  "Create": "Create",
+  "GoTo": "Go to"
 }

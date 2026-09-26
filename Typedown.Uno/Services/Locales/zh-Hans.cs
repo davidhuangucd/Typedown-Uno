@@ -273,5 +273,16 @@ public static partial class LocaleTables
         ["NextTab"] = "下一个标签",
         ["PreviousTab"] = "上一个标签",
         ["LastUsedTab"] = "上次使用的标签",
+        ["CopyContent"] = "复制内容",
+        ["CtrlAndClickOpenLink"] = "Ctrl+单击 打开链接",
+        ["InputFootnoteDefine"] = "输入脚注定义...",
+        ["InputYAMLFrontMatter"] = "输入 YAML Front Matter...",
+        ["InputMathFormula"] = "输入数学公式...",
+        ["InputLanguageIdentifier"] = "输入语言标识符...",
+        ["ClickToAddAnImage"] = "点击添加一张图片",
+        ["LoadImageFail"] = "加载图片失败",
+        ["FootnoteNotFound"] = "未找到脚注标记 [^{identifier}]:",
+        ["Create"] = "创建",
+        ["GoTo"] = "转到",
     };
 }

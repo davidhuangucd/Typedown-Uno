@@ -308,6 +308,9 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         insertColLeft = Loc.Get("InsertColumnLeft"),
         insertColRight = Loc.Get("InsertColumnRight"),
         deleteCol = Loc.Get("DeleteColumn"),
+        // Hover tooltips the page draws (uno-bridge looks these up as menuStrings['tip_' + key]).
+        tip_CopyContent = Loc.Get("CopyContent"),
+        tip_CtrlAndClickOpenLink = Loc.Get("CtrlAndClickOpenLink"),
     });
 
     /// <summary>Labels for the find and replace bar, which the page draws for the same reason.</summary>
@@ -380,7 +383,19 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         });
         t.Handle("GetCurrentTheme", _ => (object?)ThemePayload());
         t.Handle("ContentLoaded", _ => (object?)"");
-        t.Handle("GetStringResources", _ => new { });
+        t.Handle("GetStringResources", args =>
+        {
+            // The editor asks for a list of string keys (placeholders, footnote tool, etc.) and expects each
+            // mapped to its localized text — the same as the Windows host. Returning {} left them all English.
+            var result = new Dictionary<string, string>();
+            if (args?["names"] is System.Text.Json.Nodes.JsonArray names)
+                foreach (var n in names)
+                {
+                    var key = n?.GetValue<string>();
+                    if (key != null) result[key] = Loc.Get(key);
+                }
+            return (object)result;
+        });
         t.Handle("LoadImage", args => new { url = args?["url"]?.GetValue<string>() ?? "" });
         t.Handle("ResizeTable", args => new { row = args?["row"]?.GetValue<int>() ?? 2, column = args?["column"]?.GetValue<int>() ?? 2 });
         t.Handle("SetClipboard", args =>

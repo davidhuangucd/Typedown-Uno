@@ -13,5 +13,10 @@ for ref in $(grep -o 'static/[a-z]*/main\.[a-f0-9]*\.\(js\|css\)' "$DEST/index.h
   [ -f "$DEST/$ref" ] || { echo "index.html references $ref, which is not in the package" >&2; fail=1; }
 done
 
+# Every UI string the editor's floats/tooltips need must be provided by the host, or it ships untranslated.
+if command -v python3 >/dev/null 2>&1 && [ -f "$HERE/Tools/check-editor-strings.py" ]; then
+  python3 "$HERE/Tools/check-editor-strings.py" || fail=1
+fi
+
 [ $fail -eq 0 ] && echo "editor assets look right: bridge loaded, every referenced file present"
 exit $fail

@@ -273,5 +273,16 @@ public static partial class LocaleTables
         ["NextTab"] = "下一個標籤",
         ["PreviousTab"] = "上一個標籤",
         ["LastUsedTab"] = "上次使用的標籤",
+        ["CopyContent"] = "複製內容",
+        ["CtrlAndClickOpenLink"] = "Ctrl+按兩下 打開連結",
+        ["InputFootnoteDefine"] = "輸入腳註定義...",
+        ["InputYAMLFrontMatter"] = "輸入 YAML Front Matter...",
+        ["InputMathFormula"] = "輸入數學公式...",
+        ["InputLanguageIdentifier"] = "輸入語言識別碼...",
+        ["ClickToAddAnImage"] = "點擊添加一張圖片",
+        ["LoadImageFail"] = "載入圖片失敗",
+        ["FootnoteNotFound"] = "未找到腳註標記 [^{identifier}]：",
+        ["Create"] = "創建",
+        ["GoTo"] = "轉到",
     };
 }
