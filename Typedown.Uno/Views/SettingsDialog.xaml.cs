@@ -8,8 +8,11 @@ public sealed partial class SettingsDialog : ContentDialog
     private readonly AppSettings settings;
     private bool loading = true;
 
-    /// <summary>System first, then English and every table in <see cref="Services.LocaleTables"/>.</summary>
-    private static readonly (string value, string label)[] Languages =
+    /// <summary>System first, then English and every table in <see cref="Services.LocaleTables"/>. Built
+    /// fresh each time the dialog is (re)built, not as a static field: the "System" label comes from Loc.Get,
+    /// which must reflect the language currently in force, and a static field froze it — and, if evaluated
+    /// before the language was applied, showed it blank (the empty entry in the dropdown).</summary>
+    private static (string value, string label)[] BuildLanguages() =>
         new[] { ("", Loc.Get("LangSystem")), ("en", "English") }
             .Concat(Services.LocaleTables.Names.OrderBy(x => x.Key).Select(x => (x.Key, x.Value)))
             .ToArray();
@@ -66,8 +69,9 @@ public sealed partial class SettingsDialog : ContentDialog
     private void Build()
     {
         Section("General");
-        Combo("Language", Languages.Select(l => l.label), Math.Max(0, Array.FindIndex(Languages, l => l.value == settings.Language)),
-            i => settings.Language = Languages[i].value);
+        var languages = BuildLanguages();
+        Combo("Language", languages.Select(l => l.label), Math.Max(0, Array.FindIndex(languages, l => l.value == settings.Language)),
+            i => settings.Language = languages[i].value);
         // Built-in themes first, then whatever CSS files the themes folder holds (see docs/custom-theme.md).
         var builtIn = Enum.GetValues<AppTheme>();
         var custom = Services.ThemeFiles.List();

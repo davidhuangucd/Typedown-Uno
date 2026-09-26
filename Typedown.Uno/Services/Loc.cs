@@ -70,7 +70,7 @@ public static class Loc
         ["NotConfigured"] = "Set the HedgeDoc server address in Settings first.", ["EditableWarning"] = "Anyone with this link can edit the note.",
         ["Exported"] = "Exported: {0}", ["AboutText"] = "Typedown (Uno Platform edition)\nCross-platform Markdown editor; editing engine from MarkText/Muya.",
         ["AboutEditor"] = "Editor engine", ["AboutWebEngine"] = "Web engine", ["AboutSystem"] = "System", ["AboutSession"] = "Desktop session",
-        ["CopyInfo"] = "Copy details", ["Copied"] = "Copied", ["AboutIssue"] = "Please include these details in a bug report.",
+        ["CopyInfo"] = "Copy details", ["Copied"] = "Copied", ["AboutIssue"] = "Please include these details in a bug report.", ["ReportIssue"] = "Report an issue on GitHub",
         ["Copy"] = "Copy", ["Cut"] = "Cut", ["Paste"] = "Paste", ["ThemeFolder"] = "Theme folder", ["ReloadThemes"] = "Reload themes",
         ["ThemeDocument"] = "How to write a theme",
         ["Duplicate"] = "Duplicate", ["DeleteParagraph"] = "Delete paragraph",

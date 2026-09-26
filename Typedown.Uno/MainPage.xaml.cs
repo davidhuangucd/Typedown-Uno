@@ -1964,8 +1964,9 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         if (settings.ReadOnly) title += " \u00b7 " + Loc.Get("ReadOnly");
         if (window != null) window.Title = title;
         // Uno publishes the title as Latin-1 and, under a window manager, not at all after the window is up;
-        // non-ASCII titles need UTF-8, and each window gets its own.
-        PublishNativeChrome();
+        // non-ASCII titles need UTF-8, and each window gets its own. Pass the full title (with the reading-mode
+        // suffix) so it reaches the native title bar too, not just document.Title.
+        PublishNativeChrome(title);
         StatusText.Text = document?.FilePath ?? Loc.Get("Untitled");
     }
 
@@ -1993,6 +1994,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         }
         panel.Children.Add(details);
         panel.Children.Add(new TextBlock { Text = Loc.Get("AboutIssue"), Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new HyperlinkButton { Content = Loc.Get("ReportIssue"), NavigateUri = new Uri("https://github.com/flintt/Typedown-Uno/issues"), Padding = new Thickness(0) });
         var dialog = new ContentDialog
         {
             Title = Loc.Get("About"),
@@ -2143,11 +2145,11 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     }
 
     /// <summary>Publishes the UTF-8 title and, once, the app icon on this window.</summary>
-    private void PublishNativeChrome()
+    private void PublishNativeChrome(string? title = null)
     {
         var handle = NativeWindow();
         if (handle == IntPtr.Zero) return;
-        Services.X11Window.SetTitle(handle, document?.Title ?? "Typedown");
+        Services.X11Window.SetTitle(handle, title ?? document?.Title ?? "Typedown");
         // The handle can arrive late, so the wheel listener is started here rather than once at load time.
         Services.X11Window.ListenForWheel(handle);
         if (nativeIconApplied) return;

@@ -230,6 +230,7 @@ public static partial class LocaleTables
         ["CopyInfo"] = "复制信息",
         ["Copied"] = "已复制",
         ["AboutIssue"] = "反馈问题时请附上以上信息。",
+        ["ReportIssue"] = "到 GitHub 反馈问题",
         ["Copy"] = "复制",
         ["Cut"] = "剪切",
         ["Paste"] = "粘贴",
