@@ -58,7 +58,7 @@ public static class Loc
         ["FindSection"] = "Find", ["FindCaseSensitive"] = "Match case", ["FindWholeWord"] = "Whole word", ["FindRegex"] = "Regular expression",
         ["TestConnection"] = "Test connection", ["Test"] = "Test",
         ["InsertImage"] = "Insert image…", ["PrintPdf"] = "Print…", ["PrintOpened"] = "Opened in the browser — use its print dialog to save as PDF",
-        ["NewFileHere"] = "New file here", ["NewFolderHere"] = "New folder here", ["Rename"] = "Rename", ["Delete"] = "Delete", ["CopyPath"] = "Copy path",
+        ["NewFileHere"] = "New file here", ["NewFolderHere"] = "New folder here", ["Rename"] = "Rename", ["Delete"] = "Delete", ["CopyPath"] = "Copy path", ["RecoverTitle"] = "Restore unsaved changes", ["RecoverContent"] = "Typedown kept an unsaved backup of this document from before it closed. Restore it?", ["Restore"] = "Restore",
         ["RevealInFileManager"] = "Show in file manager", ["Refresh"] = "Refresh", ["DeleteConfirm"] = "Delete {0}? This cannot be undone.",
         ["ImageSection"] = "Images", ["ImageAction"] = "When inserting an image", ["ImageCopy"] = "Copy next to the document", ["ImageKeep"] = "Keep the original path",
         ["ImageCopyPath"] = "Image folder", ["ImageCopyPathHint"] = "supports ${filename} ${filedir} ${year} ${month} ${day}",

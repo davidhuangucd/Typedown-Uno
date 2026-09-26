@@ -288,5 +288,8 @@ public static partial class LocaleTables
         ["HedgeDocChangedPrompt"] = "文档自上次分享后已改动。HedgeDoc 无法更新已有笔记，重新上传会生成新链接。",
         ["ReUpload"] = "重新上传",
         ["UseOldLink"] = "使用旧链接",
+        ["RecoverTitle"] = "恢复未保存的更改",
+        ["RecoverContent"] = "Typedown 保留了本文档关闭前的未保存备份。是否恢复？",
+        ["Restore"] = "恢复",
     };
 }

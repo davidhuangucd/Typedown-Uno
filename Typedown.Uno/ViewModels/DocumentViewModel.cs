@@ -33,6 +33,8 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     private DateTime lastWatcherEvent;
     private bool handlingExternalChange;
     private CancellationTokenSource? autoSaveCts;
+    private ulong? recoveredDiskHash;
+    private bool initialRecoveryDone;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     /// <summary>Raised after a file was opened (path, preview); the shell updates recent files / the tree root.</summary>
@@ -105,11 +107,32 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
                 if (IsStale(args) || FileLoaded) return;
                 FileLoaded = true;
                 var text = args?["text"]?.GetValue<string>() ?? "";
-                FileHash = SafeFile.Hash(text); // the editor's normalized form is the "saved" baseline
+                var loadedHash = SafeFile.Hash(text);
                 Markdown = text;
-                CurrentHash = FileHash;
-                Saved = true;
+                CurrentHash = loadedHash;
+                var wasRecovery = recoveredDiskHash.HasValue;
+                if (recoveredDiskHash is ulong diskBaseline)
+                {
+                    // Recovered from a crash backup: the saved baseline is what is on disk (or the empty document
+                    // for an untitled one), so the recovered text stays unsaved until the reader saves it.
+                    FileHash = diskBaseline;
+                    recoveredDiskHash = null;
+                    Saved = FileHash == CurrentHash;
+                    if (!Saved) ScheduleSaveOrBackup();
+                }
+                else
+                {
+                    FileHash = loadedHash; // the editor's normalized form is the "saved" baseline
+                    Saved = true;
+                }
                 History.Init(text);
+                // Once the first document has loaded, offer to recover its crash backup (a file reopened after a
+                // crash, or an untitled document being edited). Interactive opens do this inline in LoadAsync.
+                if (!initialRecoveryDone)
+                {
+                    initialRecoveryDone = true;
+                    if (!wasRecovery) RunOnUi?.Invoke(MaybeRecoverActiveAsync);
+                }
                 break;
             case "MarkdownChange":
                 if (IsStale(args)) return;
@@ -117,7 +140,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
                 CurrentHash = SafeFile.Hash(Markdown);
                 Saved = FileHash == CurrentHash;
                 if (!applyingHistory) History.ContentChange(Markdown);
-                if (!Saved && settings.AutoSave && FilePath != null) ScheduleAutoSave();
+                if (!Saved) ScheduleSaveOrBackup();
                 break;
             case "ContentFlushed":
                 {
@@ -191,7 +214,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
             Saved = FileHash == CurrentHash;
             Cursor = entry.Cursor?.DeepClone();
             await transport.PostMessage("SetMarkdown", new { text = entry.Text, cursor = entry.Cursor, basePath = BasePath });
-            if (!Saved && settings.AutoSave && FilePath != null) ScheduleAutoSave();
+            if (!Saved) ScheduleSaveOrBackup();
             return true;
         }
         finally
@@ -200,15 +223,46 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    private void ScheduleAutoSave()
+    private void ScheduleSaveOrBackup()
     {
         autoSaveCts?.Cancel();
         var cts = autoSaveCts = new CancellationTokenSource();
         _ = Task.Delay(1500, cts.Token).ContinueWith(t =>
         {
             if (t.IsCanceled) return;
-            RunOnUi?.Invoke(async () => { if (!Saved && FilePath != null) await WriteAsync(FilePath, quiet: true); });
+            RunOnUi?.Invoke(SaveOrBackupAsync);
         }, TaskScheduler.Default);
+    }
+
+    // When auto-save is on and the document has a path, save it; otherwise — or if that save is refused or fails —
+    // write a crash backup so an unsaved document (auto-save off, or still untitled) is not lost to a crash.
+    private async Task SaveOrBackupAsync()
+    {
+        if (Saved) return;
+        if (settings.AutoSave && FilePath != null && await WriteAsync(FilePath, quiet: true)) return;
+        await FlushContentAsync();
+        if (!Saved) await AutoBackup.BackupAsync(FilePath, Markdown);
+    }
+
+    // Offers to recover the active document's crash backup once it has first loaded (a reopened file, or an
+    // untitled document). If accepted, the backup is loaded and left unsaved against the on-disk baseline.
+    private async Task MaybeRecoverActiveAsync()
+    {
+        var path = FilePath;
+        var backup = AutoBackup.Read(path);
+        if (backup == null) return;
+        var backupHash = SafeFile.Hash(backup);
+        if (backupHash == FileHash) { AutoBackup.Delete(path); return; } // backup matches the saved content
+        if (path == null && backupHash == SafeFile.Hash(DefaultMarkdown)) return; // nothing worth recovering
+        if (await ui.ConfirmAsync(Loc.Get("RecoverTitle"), Loc.Get("RecoverContent"), Loc.Get("Restore"), Loc.Get("Delete")))
+        {
+            recoveredDiskHash = FileHash;
+            await PostLoadFile(backup);
+        }
+        else
+        {
+            AutoBackup.Delete(path);
+        }
     }
 
     // ---- content into the editor ---------------------------------------------------------------------------
@@ -287,6 +341,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Makes the live document an empty untitled one (the caller decides about tabs / saving).</summary>
     public async Task ResetToUntitledAsync()
     {
+        AutoBackup.Delete(FilePath); // the outgoing document is being discarded or was just saved
         StopWatching();
         FilePath = null;
         FileFormat = TextFileFormat.Default;
@@ -333,7 +388,27 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
             Cursor = null;
             ScrollTop = null;
             Saved = true;
-            await PostLoadFile(text);
+            // A crash backup that differs from what is on disk means unsaved edits were lost when the app stopped;
+            // offer to recover them. Only when the editor is up — at startup the first FileLoaded handles this.
+            var toLoad = text;
+            if (EditorReady)
+            {
+                var backup = AutoBackup.Read(FilePath);
+                if (backup != null && SafeFile.Hash(backup) != FileHash)
+                {
+                    if (await ui.ConfirmAsync(Loc.Get("RecoverTitle"), Loc.Get("RecoverContent"), Loc.Get("Restore"), Loc.Get("Delete")))
+                    {
+                        toLoad = backup;
+                        Markdown = backup;
+                        recoveredDiskHash = FileHash;
+                    }
+                    else
+                    {
+                        AutoBackup.Delete(FilePath);
+                    }
+                }
+            }
+            await PostLoadFile(toLoad);
             StartWatching();
             FileOpened?.Invoke(FilePath);
             return true;
@@ -355,11 +430,16 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     {
         var path = await ui.PickSaveFileAsync(FilePath == null ? Loc.Get("Untitled") + ".md" : Path.GetFileName(FilePath));
         if (path == null) return false;
+        var previous = FilePath;
         StopWatching();
         FilePath = Path.GetFullPath(path);
         var ok = await WriteAsync(FilePath);
         StartWatching();
-        if (ok) FileOpened?.Invoke(FilePath);
+        if (ok)
+        {
+            if (previous != FilePath) AutoBackup.Delete(previous); // the old (or untitled) backup no longer applies
+            FileOpened?.Invoke(FilePath);
+        }
         return ok;
     }
 
@@ -385,6 +465,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
             FileHash = hash;
             DiskHash = hash;
             Saved = CurrentHash == hash;
+            if (Saved) AutoBackup.Delete(path); // the file now holds this content; the crash backup is stale
             CursorMemory.Flush();
             return true;
         }
