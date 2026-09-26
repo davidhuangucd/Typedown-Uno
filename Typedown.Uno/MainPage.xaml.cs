@@ -1918,23 +1918,50 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         }
         try
         {
+            // HedgeDoc 1.x cannot update a note over HTTP, so re-sharing an unchanged document hands back the
+            // previous links and a changed one asks before creating a new note (and a new link).
+            await document.FlushContentAsync();
+            var markdown = document.Markdown;
+            var hash = SafeFile.Hash(markdown);
+            var previous = HedgeDocShareMemory.Get(document.FilePath);
+            if (previous != null)
+            {
+                var previousResult = new HedgeDocShareResult { NoteUrl = previous.NoteUrl, PublishedUrl = previous.PublishedUrl };
+                if (previous.ContentHash == hash)
+                {
+                    await ShowShareResultAsync(previousResult, Loc.Get("HedgeDocUnchanged"));
+                    return;
+                }
+                var dialog = new ContentDialog { Title = Loc.Get("Shared"), Content = new TextBlock { Text = Loc.Get("HedgeDocChangedPrompt"), TextWrapping = TextWrapping.Wrap }, PrimaryButtonText = Loc.Get("ReUpload"), SecondaryButtonText = Loc.Get("UseOldLink"), CloseButtonText = Loc.Get("Cancel"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
+                var choice = await dialog.ShowAsync();
+                if (choice == ContentDialogResult.Secondary) { await ShowShareResultAsync(previousResult, null); return; }
+                if (choice != ContentDialogResult.Primary) return;
+            }
             SetStatus("HedgeDoc…");
-            var result = await HedgeDocService.ShareAsync(settings.HedgeDocServer, document.Markdown, settings.HedgeDocEmail, settings.HedgeDocPassword, settings.HedgeDocPublishReadOnly);
-            var panel = new StackPanel { Spacing = 8, MinWidth = 420 };
-            if (result.PublishedUrl != null) { panel.Children.Add(new TextBlock { Text = Loc.Get("ReadOnlyLink") }); panel.Children.Add(new TextBox { Text = result.PublishedUrl, IsReadOnly = true }); }
-            panel.Children.Add(new TextBlock { Text = Loc.Get("EditLink") });
-            panel.Children.Add(new TextBox { Text = result.NoteUrl, IsReadOnly = true });
-            if (result.PublishedUrl == null) panel.Children.Add(new TextBlock { Text = Loc.Get("EditableWarning"), Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
-            var dialog = new ContentDialog { Title = Loc.Get("Shared"), Content = panel, PrimaryButtonText = Loc.Get("CopyLink"), SecondaryButtonText = Loc.Get("OpenInBrowser"), CloseButtonText = Loc.Get("Close"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
-            var choice = await dialog.ShowAsync();
-            if (choice == ContentDialogResult.Primary) { var p = new DataPackage(); p.SetText(result.ShareUrl); Clipboard.SetContent(p); }
-            else if (choice == ContentDialogResult.Secondary) await Launcher.LaunchUriAsync(new Uri(result.ShareUrl));
+            var result = await HedgeDocService.ShareAsync(settings.HedgeDocServer, markdown, settings.HedgeDocEmail, settings.HedgeDocPassword, settings.HedgeDocPublishReadOnly);
+            HedgeDocShareMemory.Set(document.FilePath, result, hash);
+            await ShowShareResultAsync(result, null);
             SetStatus(result.ShareUrl);
         }
         catch (Exception ex)
         {
             await ShowErrorAsync(Loc.Get("Error"), ex.Message);
         }
+    }
+
+    /// <summary>Shows the HedgeDoc links (read-only + editable) with copy / open-in-browser, optionally under a note.</summary>
+    private async Task ShowShareResultAsync(HedgeDocShareResult result, string? note)
+    {
+        var panel = new StackPanel { Spacing = 8, MinWidth = 420 };
+        if (note != null) panel.Children.Add(new TextBlock { Text = note, TextWrapping = TextWrapping.Wrap });
+        if (result.PublishedUrl != null) { panel.Children.Add(new TextBlock { Text = Loc.Get("ReadOnlyLink") }); panel.Children.Add(new TextBox { Text = result.PublishedUrl, IsReadOnly = true }); }
+        panel.Children.Add(new TextBlock { Text = Loc.Get("EditLink") });
+        panel.Children.Add(new TextBox { Text = result.NoteUrl, IsReadOnly = true });
+        if (result.PublishedUrl == null) panel.Children.Add(new TextBlock { Text = Loc.Get("EditableWarning"), Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
+        var dialog = new ContentDialog { Title = Loc.Get("Shared"), Content = panel, PrimaryButtonText = Loc.Get("CopyLink"), SecondaryButtonText = Loc.Get("OpenInBrowser"), CloseButtonText = Loc.Get("Close"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
+        var choice = await dialog.ShowAsync();
+        if (choice == ContentDialogResult.Primary) { var p = new DataPackage(); p.SetText(result.ShareUrl); Clipboard.SetContent(p); }
+        else if (choice == ContentDialogResult.Secondary) await Launcher.LaunchUriAsync(new Uri(result.ShareUrl));
     }
 
     // ---- window ----------------------------------------------------------------------------------------------------

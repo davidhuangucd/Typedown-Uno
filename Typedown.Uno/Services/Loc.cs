@@ -78,7 +78,7 @@ public static class Loc
         ["AutoSave"] = "Auto save", ["RememberPosition"] = "Remember caret and scroll position", ["AlwaysShowTabBar"] = "Always show the tab bar",
         ["HedgeDoc"] = "HedgeDoc", ["Server"] = "Server", ["Email"] = "Email (optional)", ["Password"] = "Password", ["PublishReadOnly"] = "Also publish a read-only link",
         ["Shared"] = "Shared to HedgeDoc", ["ReadOnlyLink"] = "Read-only link", ["EditLink"] = "Editable link", ["CopyLink"] = "Copy link", ["OpenInBrowser"] = "Open in browser",
-        ["NotConfigured"] = "Set the HedgeDoc server address in Settings first.", ["EditableWarning"] = "Anyone with this link can edit the note.",
+        ["NotConfigured"] = "Set the HedgeDoc server address in Settings first.", ["EditableWarning"] = "Anyone with this link can edit the note.", ["HedgeDocUnchanged"] = "The document hasn't changed since it was last shared, so here are the existing links.", ["HedgeDocChangedPrompt"] = "The document has changed since it was last shared. HedgeDoc can't update a note, so re-uploading creates a new link.", ["ReUpload"] = "Re-upload", ["UseOldLink"] = "Use old link",
         ["Exported"] = "Exported: {0}", ["AboutText"] = "Typedown (Uno Platform edition)\nCross-platform Markdown editor; editing engine from MarkText/Muya.",
         ["AboutEditor"] = "Editor engine", ["AboutWebEngine"] = "Web engine", ["AboutSystem"] = "System", ["AboutSession"] = "Desktop session",
         ["CopyInfo"] = "Copy details", ["Copied"] = "Copied", ["AboutIssue"] = "Please include these details in a bug report.", ["ReportIssue"] = "Report an issue on GitHub",

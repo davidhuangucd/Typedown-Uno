@@ -276,5 +276,9 @@
   "LoadImageFail": "加载图片失败",
   "FootnoteNotFound": "未找到脚注标记 [^{identifier}]:",
   "Create": "创建",
-  "GoTo": "转到"
+  "GoTo": "转到",
+  "HedgeDocUnchanged": "文档自上次分享后未改动，这是原有链接。",
+  "HedgeDocChangedPrompt": "文档自上次分享后已改动。HedgeDoc 无法更新已有笔记，重新上传会生成新链接。",
+  "ReUpload": "重新上传",
+  "UseOldLink": "使用旧链接"
 }
