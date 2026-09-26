@@ -369,6 +369,16 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         {
             await FlushContentAsync(); // what we write must be what is on screen
             var text = Markdown;
+            // A blank buffer over a file that has content is data loss unless the reader actually deleted the
+            // text (an undoable edit): it happens when the editor is cleared programmatically — a stale/empty
+            // load, a tab race, the document handed back blank — and Ctrl+Z cannot bring it back either. Refuse
+            // it so the file on disk keeps its content and reopening recovers the document.
+            if (string.IsNullOrWhiteSpace(text) && File.Exists(path) && new FileInfo(path).Length > 0
+                && (!FileLoaded || !History.Undoable))
+            {
+                Services.Log.Write($"save skipped: blank buffer (len={text.Length}, loaded={FileLoaded}, undoable={History.Undoable}) while the file has {new FileInfo(path).Length} bytes");
+                return false;
+            }
             var hash = SafeFile.Hash(text);
             handlingExternalChange = true; // our own write must not look like an external change
             await SafeFile.WriteAllBytesAtomicAsync(path, (FileFormat ?? TextFileFormat.Default).GetBytes(text));

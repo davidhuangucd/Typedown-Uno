@@ -117,6 +117,10 @@ public sealed class TabsViewModel : INotifyPropertyChanged
     public async Task SwitchToAsync(DocumentTab tab)
     {
         if (tab == ActiveTab || !Tabs.Contains(tab)) return;
+        // Bring the outgoing document's latest edits in and let its pending change reports resolve before we
+        // snapshot it and load the next one, or a throttled MarkdownChange for the tab being left can arrive
+        // after the switch and land on the tab now shown — one document's text crossing into another.
+        await document.FlushContentAsync();
         switching = true;
         try
         {
