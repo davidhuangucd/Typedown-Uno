@@ -283,5 +283,8 @@
   "LoadImageFail": "Failed to Load Image",
   "FootnoteNotFound": "Footnote marker not found [^{identifier}]:",
   "Create": "Create",
-  "GoTo": "Go to"
+  "GoTo": "Go to",
+  "EditorNotResponding": "The editor did not respond. The operation was stopped so recent text is not lost.",
+  "ThemeDesigner": "Theme designer…",
+  "PasswordSessionOnly": "No system credential store was found. The password is kept only until Typedown exits."
 }

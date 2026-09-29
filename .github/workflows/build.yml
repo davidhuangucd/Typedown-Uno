@@ -16,8 +16,8 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  strings:
-    name: Check translations
+  checks:
+    name: Check generated assets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,9 +25,21 @@ jobs:
       # but never to tables/en.json, which no language can then carry, and a Locales/*.cs edited by hand,
       # which the next run of the generator throws away. --check catches both without writing anything.
       - run: python3 Tools/Translations/generate.py --check
+      - run: bash packaging/check-app-assets.sh
+
+  reliability:
+    name: Reliability tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - run: dotnet run --project Tests/Typedown.Uno.ReliabilityTests/Typedown.Uno.ReliabilityTests.csproj -c Release
 
   build:
     name: ${{ matrix.name }}
+    needs: [checks, reliability]
     # A release pushes the version bump to main and then the tag, which used to start the same build twice.
     # The tag run is the one that publishes, so the branch run for a version commit is skipped.
     if: github.ref_type == 'tag' || !startsWith(github.event.head_commit.message, 'Version ')

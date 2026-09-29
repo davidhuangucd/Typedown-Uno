@@ -7,14 +7,12 @@
 #   ./packaging/build-linux-packages.sh <published-dir> <version> [output-dir]
 set -e
 
-# The editor page has to be able to reach the host, and to point at files that are in the package. Five
-# packages shipped with a blank editor because index.html lost the tag that loads uno-bridge.js.
-bash "$(dirname "$0")/check-editor-assets.sh"
-
 PUBLISH=${1:?usage: build-linux-packages.sh <published-dir> <version> [out]}
 VERSION=${2:?version}
 OUT=${3:-dist}
 NAME=typedown
+# Check the files that will actually be archived, rather than only their source copies.
+bash "$(dirname "$0")/check-app-assets.sh" "$PUBLISH/Assets"
 mkdir -p "$OUT"
 PUBLISH=$(readlink -f "$PUBLISH")
 OUT=$(readlink -f "$OUT")
@@ -31,6 +29,9 @@ chmod +x "$ROOT/opt/$NAME/Typedown.Uno"
 [ -f "$PUBLISH/Assets/typedown.png" ] && cp "$PUBLISH/Assets/typedown.png" "$ROOT/usr/share/icons/hicolor/256x256/apps/$NAME.png"
 # The theme document belongs where a Debian user looks for documentation as well as next to the themes.
 [ -f "$PUBLISH/Assets/Themes/custom-theme.md" ] && cp "$PUBLISH/Assets/Themes/custom-theme.md" "$ROOT/usr/share/doc/$NAME/custom-theme.md"
+[ -f "$PUBLISH/LICENSE" ] && cp "$PUBLISH/LICENSE" "$ROOT/usr/share/doc/$NAME/LICENSE"
+[ -f "$PUBLISH/THIRD-PARTY-NOTICES.md" ] && cp "$PUBLISH/THIRD-PARTY-NOTICES.md" "$ROOT/usr/share/doc/$NAME/THIRD-PARTY-NOTICES.md"
+[ -f "$PUBLISH/PRIVACY.md" ] && cp "$PUBLISH/PRIVACY.md" "$ROOT/usr/share/doc/$NAME/PRIVACY.md"
 
 cat > "$ROOT/usr/bin/$NAME" <<'LAUNCH'
 #!/bin/sh

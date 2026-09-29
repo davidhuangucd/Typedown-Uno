@@ -14,6 +14,11 @@
 
 文件夹不存在时程序会自动创建，并放一个 `example.css` 作为起点。文件名（不含 `.css`）就是主题的内部标识，改名等于换了一个主题。
 
+设置 → 外观或视图 → 主题里的“主题配色工具”会打开随应用安装的离线中英双语页面。应用会在打开前读取
+内置主题和主题文件夹，把名称与 CSS 内容嵌入临时页面，因此左侧列表能直接选择已有主题；页面不包含本地
+文件路径，也不会联网。浏览器不能直接改写任意本地文件，完成后请下载 CSS，再放进主题文件夹并点击“重新
+加载主题”。
+
 ## 内置主题
 
 程序自带六个主题，装好就能在 视图 → 主题 和 设置 → 外观 里选到，不用往主题文件夹放任何东西：
@@ -200,6 +205,11 @@
 A theme is a single CSS file dropped into the themes folder (`%LOCALAPPDATA%\Typedown\themes\` on Windows,
 `~/.local/share/Typedown.Uno/themes/` on Linux, `~/Library/Application Support/Typedown.Uno/themes/` on macOS).
 It then appears under Settings → Appearance → Theme.
+
+**Theme designer** in Settings → Appearance or View → Theme opens the packaged bilingual offline tool. Before
+opening it, Typedown takes a data-only snapshot of bundled and user themes, so the list can load existing CSS
+without giving a browser access to the themes directory. Download the resulting CSS into the themes folder and
+choose Reload themes; the page itself does not overwrite local files or use a network service.
 
 Six themes ship with the app — Solarized Light, Sepia, Nord, Solarized Dark, Dracula and Gruvbox Dark — and are
 listed under View → Theme without installing anything. Their files sit next to the program (`Resources\Themes\`

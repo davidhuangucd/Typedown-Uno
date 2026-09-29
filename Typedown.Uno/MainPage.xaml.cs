@@ -685,11 +685,10 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
 
     private static async Task<byte[]> ReadAllAsync(Windows.Storage.Streams.IRandomAccessStream stream)
     {
-        var bytes = new byte[stream.Size];
-        using var reader = new Windows.Storage.Streams.DataReader(stream.GetInputStreamAt(0));
-        await reader.LoadAsync((uint)stream.Size);
-        reader.ReadBytes(bytes);
-        return bytes;
+        using var input = stream.AsStreamForRead();
+        using var output = new MemoryStream(stream.Size > int.MaxValue ? 0 : (int)stream.Size);
+        await input.CopyToAsync(output);
+        return output.ToArray();
     }
 
     private async Task InsertPastedImageAsync(string dataUrl)
@@ -995,6 +994,13 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             }
         }
         theme.Items.Add(new MenuFlyoutSeparator());
+        var designer = new MenuFlyoutItem { Text = Loc.Get("ThemeDesigner") };
+        designer.Click += async (_, _) =>
+        {
+            try { await Services.ThemeFiles.OpenDesignerAsync(settings.CustomTheme); }
+            catch (Exception ex) { Services.Log.Error("open theme designer", ex); }
+        };
+        theme.Items.Add(designer);
         // Picks up a theme that was just added or edited, without restarting. Rebuilding the menus has to wait
         // until this click is over: the menu would otherwise be torn down while it is still on screen.
         var themeDoc = new MenuFlyoutItem { Text = Loc.Get("ThemeDocument") };
@@ -1587,9 +1593,105 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         // These two have no colour of their own in the markup: clearing gives them their control style back.
         Set(MainMenu, surface, ApplyTo.Background);
         Set(TabBar, surface, ApplyTo.Background);
+        ApplyTabColours(theme);
         Set(StatusBar, foreground, ApplyTo.Foreground);
         Set(MainMenu, foreground, ApplyTo.Foreground);
         Set(SidePane, foreground, ApplyTo.Foreground);
+    }
+
+    /// <summary>
+    /// The editor CSS cannot reach the native TabView. Inactive tabs use the panel surface and the selected tab
+    /// joins the editor background; hover, press, close and add-button colours are derived from the same palette.
+    /// </summary>
+    private void ApplyTabColours(Services.CustomTheme? theme)
+    {
+        var editor = Brush(theme?.Background);
+        var surface = Brush(theme?.Surface) ?? editor;
+        var foreground = Brush(theme?.Foreground) ?? Readable(theme?.Surface ?? theme?.Background);
+        var border = Brush(theme?.Border);
+        var accent = Brush(theme?.Accent);
+        var inactiveForeground = WithOpacity(foreground, .68);
+        var disabledForeground = WithOpacity(foreground, .40);
+        var hover = Blend(surface, foreground, .08);
+        var pressed = Blend(surface, foreground, .14);
+        var buttonHover = WithOpacity(foreground, .10);
+        var buttonPressed = WithOpacity(foreground, .16);
+
+        SetTabBrush("TabViewItemHeaderBackground", surface);
+        SetTabBrush("TabViewItemHeaderBackgroundSelected", editor ?? surface);
+        SetTabBrush("TabViewItemHeaderBackgroundPointerOver", hover);
+        SetTabBrush("TabViewItemHeaderBackgroundPressed", pressed);
+        SetTabBrush("TabViewItemHeaderBackgroundDisabled", surface);
+        SetTabBrush("TabViewItemHeaderForeground", inactiveForeground);
+        SetTabBrush("TabViewItemHeaderForegroundSelected", foreground);
+        SetTabBrush("TabViewItemHeaderForegroundPointerOver", foreground);
+        SetTabBrush("TabViewItemHeaderForegroundPressed", foreground);
+        SetTabBrush("TabViewItemHeaderForegroundDisabled", disabledForeground);
+        SetTabBrush("TabViewItemIconForeground", inactiveForeground);
+        SetTabBrush("TabViewItemIconForegroundSelected", foreground);
+        SetTabBrush("TabViewItemIconForegroundPointerOver", foreground);
+        SetTabBrush("TabViewItemIconForegroundPressed", foreground);
+        SetTabBrush("TabViewItemSeparator", border);
+        SetTabBrush("TabViewBorderBrush", border);
+        SetTabBrush("TabViewItemBorderBrush", border);
+        SetTabBrush("TabViewSelectedItemBorderBrush", accent ?? border);
+        SetTabResource("TabViewSelectedItemBorderThickness", accent == null ? null : new Thickness(0, 2, 0, 0));
+
+        SetTabButtonBrushes("TabViewButton", surface, hover, pressed, foreground, disabledForeground, border);
+        SetTabButtonBrushes("TabViewScrollButton", surface, hover, pressed, foreground, disabledForeground, border);
+        SetTabBrush("TabViewItemHeaderCloseButtonForeground", inactiveForeground);
+        SetTabBrush("TabViewItemHeaderCloseButtonForegroundPointerOver", foreground);
+        SetTabBrush("TabViewItemHeaderCloseButtonForegroundPressed", foreground);
+        SetTabBrush("TabViewItemHeaderPointerOverCloseButtonForeground", foreground);
+        SetTabBrush("TabViewItemHeaderPressedCloseButtonForeground", foreground);
+        SetTabBrush("TabViewItemHeaderSelectedCloseButtonForeground", foreground);
+        SetTabBrush("TabViewItemHeaderDisabledCloseButtonForeground", disabledForeground);
+        var transparent = surface == null ? null : new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0));
+        SetTabBrush("TabViewItemHeaderCloseButtonBackground", transparent);
+        SetTabBrush("TabViewItemHeaderPointerOverCloseButtonBackground", buttonHover);
+        SetTabBrush("TabViewItemHeaderPressedCloseButtonBackground", buttonPressed);
+        SetTabBrush("TabViewItemHeaderSelectedCloseButtonBackground", transparent);
+        SetTabBrush("TabViewItemHeaderDisabledCloseButtonBackground", transparent);
+    }
+
+    private void SetTabButtonBrushes(string prefix, Brush? background, Brush? hover, Brush? pressed,
+        Brush? foreground, Brush? disabledForeground, Brush? border)
+    {
+        SetTabBrush(prefix + "Background", background);
+        SetTabBrush(prefix + "BackgroundPointerOver", hover);
+        SetTabBrush(prefix + "BackgroundPressed", pressed);
+        SetTabBrush(prefix + "BackgroundDisabled", background);
+        SetTabBrush(prefix + "Foreground", foreground);
+        SetTabBrush(prefix + "ForegroundPointerOver", foreground);
+        SetTabBrush(prefix + "ForegroundPressed", foreground);
+        SetTabBrush(prefix + "ForegroundDisabled", disabledForeground);
+        SetTabBrush(prefix + "BorderBrush", border);
+        SetTabBrush(prefix + "BorderBrushPointerOver", border);
+        SetTabBrush(prefix + "BorderBrushPressed", border);
+        SetTabBrush(prefix + "BorderBrushDisabled", border);
+    }
+
+    private void SetTabBrush(string key, Brush? brush) => SetTabResource(key, brush);
+
+    private void SetTabResource(string key, object? value)
+    {
+        if (value == null) TabBar.Resources.Remove(key);
+        else TabBar.Resources[key] = value;
+    }
+
+    private static Brush? WithOpacity(Brush? brush, double opacity)
+    {
+        if (brush is not SolidColorBrush solid) return brush;
+        var colour = solid.Color;
+        return new SolidColorBrush(Windows.UI.Color.FromArgb((byte)(255 * opacity), colour.R, colour.G, colour.B));
+    }
+
+    private static Brush? Blend(Brush? background, Brush? foreground, double amount)
+    {
+        if (background is not SolidColorBrush bg || foreground is not SolidColorBrush fg) return background;
+        byte Mix(byte from, byte to) => (byte)Math.Round(from + (to - from) * amount);
+        return new SolidColorBrush(Windows.UI.Color.FromArgb(255,
+            Mix(bg.Color.R, fg.Color.R), Mix(bg.Color.G, fg.Color.G), Mix(bg.Color.B, fg.Color.B)));
     }
 
     private enum ApplyTo { Background, Foreground, Border }
@@ -1920,7 +2022,11 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         {
             // HedgeDoc 1.x cannot update a note over HTTP, so re-sharing an unchanged document hands back the
             // previous links and a changed one asks before creating a new note (and a new link).
-            await document.FlushContentAsync();
+            if (!await document.FlushContentAsync())
+            {
+                await ShowErrorAsync(Loc.Get("Error"), Loc.Get("EditorNotResponding"));
+                return;
+            }
             var markdown = document.Markdown;
             var hash = SafeFile.Hash(markdown);
             var previous = HedgeDocShareMemory.Get(document.FilePath);
@@ -1990,7 +2096,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         if (tabs != null && !await tabs.AskToSaveAllAsync()) return;
         closing = true;
         tabs?.SaveSession(workFolder);
-        settings.Save();
+        await Task.WhenAll(settings.FlushAsync(), SessionMemory.FlushAsync(), CursorMemory.FlushAsync(), HedgeDocShareMemory.FlushAsync());
         document?.Dispose();
         // Closing the window is enough: the app exits once the last one is gone.
         if (window != null) window.Close();

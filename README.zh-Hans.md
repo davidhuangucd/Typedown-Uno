@@ -87,7 +87,8 @@ Uno 的 GTK 网页视图按**不带版本号**的库名（`libgdk-3.so`、`libso
 
 ## 主题
 
-把一个 CSS 文件放进主题文件夹即可，格式见 **[自定义主题](docs/custom-theme.md)**。
+把一个 CSS 文件放进主题文件夹即可，也可以从“视图 → 主题”打开随应用打包的离线配色工具，格式见
+**[自定义主题](docs/custom-theme.md)**。
 
 ## 开发
 
@@ -114,4 +115,6 @@ dotnet publish Typedown.Uno/Typedown.Uno.csproj -f net9.0-desktop -c Release -r 
 
 ## 许可证
 
-MIT，沿用上游 [byxiaozhi/Typedown](https://github.com/byxiaozhi/Typedown)（见 `LICENSE`）。编辑内核来自 [MarkText](https://github.com/marktext/marktext) 的 Muya（同为 MIT）。
+MIT，沿用上游 [byxiaozhi/Typedown](https://github.com/byxiaozhi/Typedown)（见 [LICENSE](LICENSE)）。编辑内核
+来自 [MarkText](https://github.com/marktext/marktext) 的 Muya（同为 MIT）。另见[第三方组件声明](THIRD-PARTY-NOTICES.md)
+和[隐私说明](docs/privacy.md)。

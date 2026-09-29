@@ -19,6 +19,7 @@ public static class HedgeDocShareMemory
 
     private const int MaxEntries = 500;
     private static readonly object sync = new();
+    private static readonly SerializedFileWriter writer = new(StorePath);
     private static Dictionary<string, Entry>? entries;
 
     private static string StorePath => Path.Combine(CursorMemory.DataFolder, "hedgedoc-shares.json");
@@ -61,14 +62,10 @@ public static class HedgeDocShareMemory
                     entries.Remove(key);
             snapshot = new(entries);
         }
-        try
-        {
-            File.WriteAllText(StorePath, JsonSerializer.Serialize(snapshot));
-        }
-        catch
-        {
-        }
+        writer.Queue(JsonSerializer.Serialize(snapshot));
     }
+
+    public static Task FlushAsync() => writer.FlushAsync();
 
     private static string Normalize(string path) => Path.GetFullPath(path);
 }

@@ -19,6 +19,7 @@ public static class CursorMemory
 
     private const int MaxEntries = 500;
     private static readonly object sync = new();
+    private static readonly SerializedFileWriter writer = new(StorePath);
     private static Dictionary<string, Entry>? entries;
     private static bool dirty;
 
@@ -107,13 +108,13 @@ public static class CursorMemory
             snapshot = new(entries);
             dirty = false;
         }
-        try
-        {
-            File.WriteAllText(StorePath, JsonSerializer.Serialize(snapshot));
-        }
-        catch
-        {
-        }
+        writer.Queue(JsonSerializer.Serialize(snapshot));
+    }
+
+    public static async Task FlushAsync()
+    {
+        Flush();
+        await writer.FlushAsync();
     }
 
     private static string Normalize(string path) => Path.GetFullPath(path);

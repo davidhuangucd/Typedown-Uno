@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace Typedown.Uno.Services;
 
@@ -21,6 +22,10 @@ public static class ThemeFiles
 
     /// <summary>The themes that ship with the app, next to the executable and never written to.</summary>
     public static string BundledFolder => System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "Themes");
+
+    public static string DesignerTemplatePath => System.IO.Path.Combine(BundledFolder, "theme-designer.html");
+    public static string DesignerPath => System.IO.Path.Combine(CursorMemory.DataFolder, "theme-designer.html");
+    private const long MaxDesignerThemeBytes = 2 * 1024 * 1024;
 
     /// <summary>
     /// Every readable theme, by file name: the ones that ship with the app first, then the user's folder. A file
@@ -83,6 +88,62 @@ public static class ThemeFiles
             Log.Error("read theme", ex);
             return "";
         }
+    }
+
+    /// <summary>
+    /// Browsers cannot enumerate an arbitrary local folder from a file page. The app reads the trusted theme
+    /// locations, embeds their current CSS without local paths, and opens the generated offline snapshot.
+    /// </summary>
+    public static async Task OpenDesignerAsync(string? selectedId)
+    {
+        var path = await PrepareDesignerAsync(selectedId);
+        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+    }
+
+    public static async Task<string> PrepareDesignerAsync(string? selectedId)
+    {
+        EnsureFolder();
+        if (!File.Exists(DesignerTemplatePath))
+            throw new FileNotFoundException("The packaged theme designer is missing.", DesignerTemplatePath);
+
+        var entries = new List<ThemeDesignerEntry>();
+        foreach (var theme in List())
+        {
+            try
+            {
+                var info = new FileInfo(theme.Path);
+                if (!info.Exists || info.Length > MaxDesignerThemeBytes)
+                {
+                    Log.Write($"theme designer skipped {info.Name}: missing or larger than {MaxDesignerThemeBytes} bytes");
+                    continue;
+                }
+                entries.Add(new ThemeDesignerEntry
+                {
+                    Id = theme.Id,
+                    Name = theme.Name,
+                    FileName = info.Name,
+                    Source = SameFolder(info.DirectoryName, BundledFolder) ? "bundled" : "user",
+                    Css = await File.ReadAllTextAsync(theme.Path),
+                });
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"theme designer read {theme.Id}", ex);
+            }
+        }
+
+        var template = await File.ReadAllTextAsync(DesignerTemplatePath);
+        var html = ThemeDesignerPage.EmbedCatalog(template, new ThemeDesignerCatalog { SelectedId = selectedId, Themes = entries });
+        await SafeFile.WriteAllTextAtomicAsync(DesignerPath, html);
+        return DesignerPath;
+    }
+
+    private static bool SameFolder(string? left, string right)
+    {
+        if (string.IsNullOrEmpty(left)) return false;
+        return string.Equals(System.IO.Path.GetFullPath(left).TrimEnd(System.IO.Path.DirectorySeparatorChar),
+            System.IO.Path.GetFullPath(right).TrimEnd(System.IO.Path.DirectorySeparatorChar),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>The theme document that ships with the app, in the themes folder where it is looked for.</summary>

@@ -310,7 +310,7 @@ public static class X11Window
                     if (!XGetEventData(connection, buffer)) continue;
                     try
                     {
-                        var data = Marshal.ReadIntPtr(buffer, 48);
+                        var data = MemoryMarshal.Read<IntPtr>(buffer.AsSpan(48));
                         if (data == IntPtr.Zero) continue;
                         // XIDeviceEvent: detail at 56, event_x/event_y (doubles) at 104/112
                         var button = Marshal.ReadInt32(data, 56);

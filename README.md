@@ -87,7 +87,8 @@ Uno's GTK web view P/Invokes **unversioned** library names (`libgdk-3.so`, `libs
 
 ## Themes
 
-Drop a CSS file into the theme folder — see **[Custom themes](docs/custom-theme.md)**.
+Drop a CSS file into the theme folder, or start with the bundled offline designer under View → Theme — see
+**[Custom themes](docs/custom-theme.md)**.
 
 ## Development
 
@@ -114,4 +115,6 @@ Open an [issue](https://github.com/flintt/Typedown-Uno/issues/new/choose) — fi
 
 ## License
 
-MIT, following upstream [byxiaozhi/Typedown](https://github.com/byxiaozhi/Typedown) (see `LICENSE`). The editor kernel is Muya from [MarkText](https://github.com/marktext/marktext) (also MIT).
+MIT, following upstream [byxiaozhi/Typedown](https://github.com/byxiaozhi/Typedown) (see [LICENSE](LICENSE)). The
+editor kernel is Muya from [MarkText](https://github.com/marktext/marktext) (also MIT). See the
+[third-party notices](THIRD-PARTY-NOTICES.md) and [privacy statement](docs/privacy.md).

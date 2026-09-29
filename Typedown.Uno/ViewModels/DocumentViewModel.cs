@@ -30,16 +30,24 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     private readonly IHostUi ui;
     private readonly AppSettings settings;
     private FileSystemWatcher? watcher;
-    private DateTime lastWatcherEvent;
     private bool handlingExternalChange;
+    private readonly object watcherScheduleSync = new();
+    private readonly SemaphoreSlim watcherCheckLock = new(1, 1);
+    private readonly SemaphoreSlim saveLock = new(1, 1);
+    private CancellationTokenSource? watcherCheckCts;
+    private int watcherCheckRequested;
     private CancellationTokenSource? autoSaveCts;
     private ulong? recoveredDiskHash;
     private bool initialRecoveryDone;
+
+    public string DocumentId { get; private set; } = Guid.NewGuid().ToString("N");
 
     public event PropertyChangedEventHandler? PropertyChanged;
     /// <summary>Raised after a file was opened (path, preview); the shell updates recent files / the tree root.</summary>
     public event Action<string>? FileOpened;
     public event Action<Func<Task>>? RunOnUi;
+
+    public void ShowStatus(string message) => ui.ShowStatus(message);
 
     private string? filePath;
     public string? FilePath { get => filePath; private set { filePath = value; OnPropertyChanged(); OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(FileName)); } }
@@ -176,16 +184,18 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     private int flushToken;
     private readonly Dictionary<int, TaskCompletionSource<bool>> flushWaiters = new();
 
-    public async Task FlushContentAsync(int timeoutMs = 500)
+    /// <summary>Returns false when the editor did not answer before the timeout.</summary>
+    public async Task<bool> FlushContentAsync(int timeoutMs = 500)
     {
-        if (!EditorReady || !FileLoaded) return;
+        if (!EditorReady || !FileLoaded) return true;
         var token = ++flushToken;
         var waiter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         lock (flushWaiters) flushWaiters[token] = waiter;
         try
         {
             await transport.PostMessage("FlushContent", new { token });
-            await Task.WhenAny(waiter.Task, Task.Delay(timeoutMs));
+            var completed = await Task.WhenAny(waiter.Task, Task.Delay(timeoutMs));
+            return completed == waiter.Task;
         }
         finally
         {
@@ -241,7 +251,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         if (Saved) return;
         if (settings.AutoSave && FilePath != null && await WriteAsync(FilePath, quiet: true)) return;
         await FlushContentAsync();
-        if (!Saved) await AutoBackup.BackupAsync(FilePath, Markdown);
+        if (!Saved) await AutoBackup.BackupAsync(FilePath, DocumentId, Markdown);
     }
 
     // Offers to recover the active document's crash backup once it has first loaded (a reopened file, or an
@@ -249,10 +259,10 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     private async Task MaybeRecoverActiveAsync()
     {
         var path = FilePath;
-        var backup = AutoBackup.Read(path);
+        var backup = AutoBackup.Read(path, DocumentId);
         if (backup == null) return;
         var backupHash = SafeFile.Hash(backup);
-        if (backupHash == FileHash) { AutoBackup.Delete(path); return; } // backup matches the saved content
+        if (backupHash == FileHash) { AutoBackup.Delete(path, DocumentId); return; } // backup matches the saved content
         if (path == null && backupHash == SafeFile.Hash(DefaultMarkdown)) return; // nothing worth recovering
         if (await ui.ConfirmAsync(Loc.Get("RecoverTitle"), Loc.Get("RecoverContent"), Loc.Get("Restore"), Loc.Get("Delete")))
         {
@@ -261,7 +271,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         }
         else
         {
-            AutoBackup.Delete(path);
+            AutoBackup.Delete(path, DocumentId);
         }
     }
 
@@ -301,6 +311,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
 
     public void Capture(DocumentTab tab)
     {
+        tab.DocumentId = DocumentId;
         tab.FilePath = FilePath;
         tab.FileFormat = FileFormat;
         tab.History = History;
@@ -318,6 +329,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     public async Task Restore(DocumentTab tab)
     {
         StopWatching();
+        DocumentId = tab.DocumentId;
         FilePath = tab.FilePath;
         FileFormat = tab.FileFormat ?? TextFileFormat.Default;
         SetHistory(tab.History ??= new ContentHistory());
@@ -336,21 +348,33 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         await CheckExternalChangeAsync();
     }
 
+    /// <summary>Separates a new tab from the outgoing tab before a file is loaded into it.</summary>
+    public void PrepareNewTab(string documentId)
+    {
+        StopWatching();
+        DocumentId = documentId;
+        SetHistory(new ContentHistory());
+    }
+
     // ---- commands ---------------------------------------------------------------------------------------------
 
     /// <summary>Makes the live document an empty untitled one (the caller decides about tabs / saving).</summary>
-    public async Task ResetToUntitledAsync()
+    public async Task ResetToUntitledAsync(string? documentId = null, bool discardCurrent = true, string? recoveredText = null)
     {
-        AutoBackup.Delete(FilePath); // the outgoing document is being discarded or was just saved
+        if (discardCurrent) AutoBackup.Delete(FilePath, DocumentId);
         StopWatching();
+        DocumentId = documentId ?? Guid.NewGuid().ToString("N");
+        SetHistory(new ContentHistory());
         FilePath = null;
         FileFormat = TextFileFormat.Default;
-        Markdown = DefaultMarkdown;
-        FileHash = CurrentHash = SafeFile.Hash(DefaultMarkdown);
+        Markdown = recoveredText ?? DefaultMarkdown;
+        FileHash = SafeFile.Hash(DefaultMarkdown);
+        CurrentHash = SafeFile.Hash(Markdown);
         DiskHash = 0;
         Cursor = null;
         ScrollTop = null;
-        Saved = true;
+        Saved = recoveredText == null || FileHash == CurrentHash;
+        recoveredDiskHash = recoveredText == null ? null : FileHash;
         await PostLoadFile(Markdown);
     }
 
@@ -393,7 +417,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
             var toLoad = text;
             if (EditorReady)
             {
-                var backup = AutoBackup.Read(FilePath);
+                var backup = AutoBackup.Read(FilePath, DocumentId);
                 if (backup != null && SafeFile.Hash(backup) != FileHash)
                 {
                     if (await ui.ConfirmAsync(Loc.Get("RecoverTitle"), Loc.Get("RecoverContent"), Loc.Get("Restore"), Loc.Get("Delete")))
@@ -404,7 +428,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
                     }
                     else
                     {
-                        AutoBackup.Delete(FilePath);
+                        AutoBackup.Delete(FilePath, DocumentId);
                     }
                 }
             }
@@ -428,26 +452,47 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
 
     public async Task<bool> SaveAsAsync()
     {
+        var documentId = DocumentId;
         var path = await ui.PickSaveFileAsync(FilePath == null ? Loc.Get("Untitled") + ".md" : Path.GetFileName(FilePath));
-        if (path == null) return false;
+        if (path == null || DocumentId != documentId) return false;
         var previous = FilePath;
+        var target = Path.GetFullPath(path);
         StopWatching();
-        FilePath = Path.GetFullPath(path);
-        var ok = await WriteAsync(FilePath);
+        FilePath = target;
+        var ok = await WriteAsync(target);
+        if (DocumentId != documentId || !string.Equals(FilePath, target, StringComparison.Ordinal)) return false;
+        if (!ok) FilePath = previous;
         StartWatching();
         if (ok)
         {
-            if (previous != FilePath) AutoBackup.Delete(previous); // the old (or untitled) backup no longer applies
-            FileOpened?.Invoke(FilePath);
+            if (previous != target) AutoBackup.Delete(previous, documentId); // the old (or untitled) backup no longer applies
+            FileOpened?.Invoke(target);
         }
         return ok;
     }
 
     private async Task<bool> WriteAsync(string path, bool quiet = false)
     {
+        var documentId = DocumentId;
+        await saveLock.WaitAsync();
         try
         {
-            await FlushContentAsync(); // what we write must be what is on screen
+            if (DocumentId != documentId || !string.Equals(FilePath, path, StringComparison.Ordinal)) return false;
+            return await WriteCoreAsync(path, documentId, quiet);
+        }
+        finally
+        {
+            saveLock.Release();
+        }
+    }
+
+    private async Task<bool> WriteCoreAsync(string path, string documentId, bool quiet)
+    {
+        try
+        {
+            if (!await FlushContentAsync())
+                throw new IOException(Loc.Get("EditorNotResponding"));
+            if (DocumentId != documentId || !string.Equals(FilePath, path, StringComparison.Ordinal)) return false;
             var text = Markdown;
             // A blank buffer over a file that has content is data loss unless the reader actually deleted the
             // text (an undoable edit): it happens when the editor is cleared programmatically — a stale/empty
@@ -459,13 +504,19 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
                 Services.Log.Write($"save skipped: blank buffer (len={text.Length}, loaded={FileLoaded}, undoable={History.Undoable}) while the file has {new FileInfo(path).Length} bytes");
                 return false;
             }
+            if (quiet && (FileFormat?.LossyDecode ?? false) && File.Exists(path))
+            {
+                Services.Log.Write($"auto-save skipped: {path} was decoded lossily; overwriting would replace its original bytes");
+                return false;
+            }
             var hash = SafeFile.Hash(text);
             handlingExternalChange = true; // our own write must not look like an external change
             await SafeFile.WriteAllBytesAtomicAsync(path, (FileFormat ?? TextFileFormat.Default).GetBytes(text));
+            if (DocumentId != documentId || !string.Equals(FilePath, path, StringComparison.Ordinal)) return false;
             FileHash = hash;
             DiskHash = hash;
             Saved = CurrentHash == hash;
-            if (Saved) AutoBackup.Delete(path); // the file now holds this content; the crash backup is stale
+            if (Saved) AutoBackup.Delete(path, documentId); // the file now holds this content; the crash backup is stale
             CursorMemory.Flush();
             return true;
         }
@@ -476,7 +527,6 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         }
         finally
         {
-            lastWatcherEvent = DateTime.UtcNow;
             handlingExternalChange = false;
         }
     }
@@ -484,12 +534,15 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>Asks about unsaved changes; true when the caller may proceed.</summary>
     public async Task<bool> AskToSaveAsync()
     {
-        if (Saved) return true;
+        var flushed = await FlushContentAsync();
+        if (flushed && Saved) return true;
         if (settings.AutoSave && FilePath != null && await WriteAsync(FilePath, quiet: true)) return true;
         switch (await ui.AskSaveAsync(FileName))
         {
             case AskResult.Yes: return await SaveAsync();
-            case AskResult.No: return true;
+            case AskResult.No:
+                AutoBackup.Delete(FilePath, DocumentId);
+                return true;
             default: return false;
         }
     }
@@ -508,6 +561,8 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
             watcher.Changed += OnFileEvent;
             watcher.Created += OnFileEvent;
             watcher.Renamed += OnFileEvent;
+            watcher.Deleted += OnFileEvent;
+            watcher.Error += OnWatcherError;
             watcher.EnableRaisingEvents = true;
         }
         catch
@@ -518,27 +573,76 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
 
     private void StopWatching()
     {
+        lock (watcherScheduleSync)
+        {
+            watcherCheckCts?.Cancel();
+            watcherCheckCts?.Dispose();
+            watcherCheckCts = null;
+            Interlocked.Exchange(ref watcherCheckRequested, 0);
+        }
         watcher?.Dispose();
         watcher = null;
     }
 
     private void OnFileEvent(object sender, FileSystemEventArgs e)
     {
-        if (handlingExternalChange || (DateTime.UtcNow - lastWatcherEvent).TotalMilliseconds < 500) return;
-        lastWatcherEvent = DateTime.UtcNow;
-        RunOnUi?.Invoke(async () => { await Task.Delay(200); await CheckExternalChangeAsync(); });
+        ScheduleExternalCheck();
+    }
+
+    private void OnWatcherError(object sender, ErrorEventArgs e)
+    {
+        Services.Log.Error("file watcher", e.GetException());
+        ScheduleExternalCheck();
+    }
+
+    /// <summary>
+    /// Coalesces bursts without dropping an event that arrives while a save or reload is in progress. Watcher
+    /// overflow is handled through the same full disk re-check, so the next known state is read from the file.
+    /// </summary>
+    private void ScheduleExternalCheck()
+    {
+        Interlocked.Exchange(ref watcherCheckRequested, 1);
+        CancellationToken token;
+        lock (watcherScheduleSync)
+        {
+            watcherCheckCts?.Cancel();
+            watcherCheckCts?.Dispose();
+            watcherCheckCts = new CancellationTokenSource();
+            token = watcherCheckCts.Token;
+        }
+        RunOnUi?.Invoke(async () =>
+        {
+            try
+            {
+                await Task.Delay(200, token);
+                await watcherCheckLock.WaitAsync(token);
+                try
+                {
+                    while (Interlocked.Exchange(ref watcherCheckRequested, 0) != 0)
+                    {
+                        while (handlingExternalChange) await Task.Delay(50, token);
+                        await CheckExternalChangeAsync();
+                    }
+                }
+                finally { watcherCheckLock.Release(); }
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        });
     }
 
     public async Task CheckExternalChangeAsync()
     {
-        if (FilePath == null || handlingExternalChange) return;
+        var path = FilePath;
+        var documentId = DocumentId;
+        if (path == null || handlingExternalChange) return;
         handlingExternalChange = true;
         try
         {
-            if (!File.Exists(FilePath)) return;
+            if (!File.Exists(path)) return;
             string text;
             TextFileFormat format;
-            try { (text, format) = await TextFileFormat.ReadAsync(FilePath); } catch { return; }
+            try { (text, format) = await TextFileFormat.ReadAsync(path); } catch { return; }
+            if (DocumentId != documentId || !string.Equals(FilePath, path, StringComparison.Ordinal)) return;
             FileFormat = format; // whoever wrote it last decides the shape from now on
             var diskHash = SafeFile.Hash(text);
             if (diskHash == DiskHash || diskHash == FileHash) return; // nothing really changed
@@ -553,6 +657,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
                 return;
             }
             var reload = await ui.ConfirmAsync(Loc.Get("FileChanged"), Loc.Format("ReloadPrompt", FileName), Loc.Get("Reload"), Loc.Get("KeepMine"));
+            if (DocumentId != documentId || !string.Equals(FilePath, path, StringComparison.Ordinal)) return;
             if (reload) await ApplyDiskTextAsync(text);
             else DiskHash = diskHash;
         }

@@ -149,7 +149,8 @@ public sealed partial class SettingsDialog : ContentDialog
         Section("HedgeDoc");
         Text("Server", settings.HedgeDocServer, v => settings.HedgeDocServer = v, placeholder: null, hint: "https://md.example.com");
         Text("Email", settings.HedgeDocEmail, v => settings.HedgeDocEmail = v);
-        Password("Password", settings.HedgeDocPassword, v => settings.HedgeDocPassword = v);
+        Password("Password", settings.HedgeDocPassword, v => settings.HedgeDocPassword = v,
+            CredentialStore.IsPersistentAvailable ? null : "PasswordSessionOnly");
         Toggle("PublishReadOnly", settings.HedgeDocPublishReadOnly, v => settings.HedgeDocPublishReadOnly = v);
         TestRow();
     }
@@ -202,11 +203,11 @@ public sealed partial class SettingsDialog : ContentDialog
         Add(Row(key, box, stacked: true));
     }
 
-    private void Password(string key, string value, Action<string> set)
+    private void Password(string key, string value, Action<string> set, string? descriptionKey = null)
     {
         var box = new PasswordBox { Password = value, MinWidth = 220 };
         box.PasswordChanged += (_, _) => { if (!loading) set(box.Password); };
-        Add(Row(key, box));
+        Add(Row(key, box, descriptionKey));
     }
 
     /// <summary>Where custom themes live, with a button that opens the folder in the file manager.</summary>
@@ -236,7 +237,13 @@ public sealed partial class SettingsDialog : ContentDialog
         };
         var document = new Button { Content = Loc.Get("ThemeDocument") };
         document.Click += (_, _) => MainPage.OpenThemeDocument();
-        Add(Row("ThemeFolder", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { path, button, document } }));
+        var designer = new Button { Content = Loc.Get("ThemeDesigner") };
+        designer.Click += async (_, _) =>
+        {
+            try { await Services.ThemeFiles.OpenDesignerAsync(settings.CustomTheme); }
+            catch (Exception ex) { Services.Log.Error("open theme designer", ex); }
+        };
+        Add(Row("ThemeFolder", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { path, button, designer, document } }));
     }
 
     private void FolderRow(string key, Func<string?> get, Action<string?> set)

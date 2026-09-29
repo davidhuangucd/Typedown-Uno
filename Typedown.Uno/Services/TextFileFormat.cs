@@ -12,14 +12,21 @@ public sealed class TextFileFormat
 
     public bool HasByteOrderMark { get; }
 
+    /// <summary>
+    /// True when decoding and re-encoding did not reproduce the original bytes. Automatically overwriting such
+    /// a file would permanently replace bytes from GBK, Latin-1 or a damaged UTF stream with replacement text.
+    /// </summary>
+    public bool LossyDecode { get; }
+
     /// <summary>"\n", "\r\n" or "\r"; the one the file used most, and what a save writes back.</summary>
     public string LineEnding { get; }
 
-    private TextFileFormat(Encoding encoding, bool hasByteOrderMark, string lineEnding)
+    private TextFileFormat(Encoding encoding, bool hasByteOrderMark, string lineEnding, bool lossyDecode = false)
     {
         Encoding = encoding;
         HasByteOrderMark = hasByteOrderMark;
         LineEnding = lineEnding;
+        LossyDecode = lossyDecode;
     }
 
     /// <summary>
@@ -31,7 +38,7 @@ public sealed class TextFileFormat
         var bytes = await File.ReadAllBytesAsync(path);
         var (encoding, bomLength) = DetectEncoding(bytes);
         var text = encoding.GetString(bytes, bomLength, bytes.Length - bomLength);
-        var format = new TextFileFormat(encoding, bomLength > 0, DetectLineEnding(text));
+        var format = new TextFileFormat(encoding, bomLength > 0, DetectLineEnding(text), !RoundTrips(encoding, bytes, bomLength, text));
         return (Normalize(text), format);
     }
 
@@ -50,6 +57,21 @@ public sealed class TextFileFormat
 
     /// <summary>Every line ending as "\n". The editor works in that alone; the file's own form is restored on save.</summary>
     public static string Normalize(string text) => text.Replace("\r\n", "\n").Replace('\r', '\n');
+
+    private static bool RoundTrips(Encoding encoding, byte[] original, int bomLength, string decoded)
+    {
+        try
+        {
+            var encoded = encoding.GetBytes(decoded);
+            var bodyLength = original.Length - bomLength;
+            if (encoded.Length != bodyLength) return false;
+            return encoded.AsSpan().SequenceEqual(original.AsSpan(bomLength));
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static (Encoding Encoding, int BomLength) DetectEncoding(byte[] bytes)
     {

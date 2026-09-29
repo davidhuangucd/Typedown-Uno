@@ -291,5 +291,8 @@ public static partial class LocaleTables
         ["RecoverTitle"] = "恢复未保存的更改",
         ["RecoverContent"] = "Typedown 保留了本文档关闭前的未保存备份。是否恢复？",
         ["Restore"] = "恢复",
+        ["EditorNotResponding"] = "编辑器没有响应。操作已停止，以免丢失刚输入的内容。",
+        ["ThemeDesigner"] = "主题配色工具…",
+        ["PasswordSessionOnly"] = "未找到系统凭据存储。密码只保留到本次退出 Typedown。",
     };
 }

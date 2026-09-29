@@ -25,6 +25,7 @@ public sealed class TabsViewModel : INotifyPropertyChanged
         this.document = document;
         this.settings = settings;
         activeTab = new DocumentTab();
+        activeTab.DocumentId = document.DocumentId;
         Tabs.Add(activeTab);
         document.PropertyChanged += (_, e) =>
         {
@@ -78,15 +79,16 @@ public sealed class TabsViewModel : INotifyPropertyChanged
     {
         if (document.IsBlank) return;
         BeginNewTab();
-        await document.ResetToUntitledAsync();
+        await document.ResetToUntitledAsync(ActiveTab.DocumentId, discardCurrent: false);
     }
 
-    private DocumentTab BeginNewTab()
+    private DocumentTab BeginNewTab(string? documentId = null)
     {
         document.Capture(ActiveTab);
-        var tab = new DocumentTab();
+        var tab = new DocumentTab { DocumentId = documentId ?? Guid.NewGuid().ToString("N") };
         Tabs.Add(tab);
         ActiveTab = tab;
+        document.PrepareNewTab(tab.DocumentId);
         return tab;
     }
 
@@ -120,7 +122,12 @@ public sealed class TabsViewModel : INotifyPropertyChanged
         // Bring the outgoing document's latest edits in and let its pending change reports resolve before we
         // snapshot it and load the next one, or a throttled MarkdownChange for the tab being left can arrive
         // after the switch and land on the tab now shown — one document's text crossing into another.
-        await document.FlushContentAsync();
+        if (!await document.FlushContentAsync())
+        {
+            document.ShowStatus(Loc.Get("EditorNotResponding"));
+            OnPropertyChanged(nameof(ActiveTab)); // reset a TabView selection that already moved visually
+            return;
+        }
         switching = true;
         try
         {
@@ -161,7 +168,7 @@ public sealed class TabsViewModel : INotifyPropertyChanged
         if (!await document.AskToSaveAsync()) return false;
         if (Tabs.Count == 1)
         {
-            await document.ResetToUntitledAsync();
+            await document.ResetToUntitledAsync(tab.DocumentId);
             tab.FilePath = null;
             tab.IsDirty = false;
             return true;
@@ -197,25 +204,43 @@ public sealed class TabsViewModel : INotifyPropertyChanged
 
     public void SaveSession(string? folder)
     {
-        var files = Tabs.Select(t => t == ActiveTab ? document.FilePath : t.FilePath).ToList();
-        var activePath = files[Tabs.IndexOf(ActiveTab)];
-        var kept = files.Where(f => !string.IsNullOrEmpty(f)).ToList();
-        SessionMemory.Save(kept, Math.Max(0, kept.IndexOf(activePath)), folder);
+        var documents = Tabs.Select(t => new SessionMemory.DocumentEntry
+        {
+            FilePath = t == ActiveTab ? document.FilePath : t.FilePath,
+            DocumentId = t == ActiveTab ? document.DocumentId : t.DocumentId,
+        }).ToList();
+        var activeId = document.DocumentId;
+        documents = documents.Where(d => d.FilePath != null || AutoBackup.Exists(null, d.DocumentId)).ToList();
+        SessionMemory.Save(documents, Math.Max(0, documents.FindIndex(d => d.DocumentId == activeId)), folder);
     }
 
     /// <summary>Reopens the last session's files as tabs (before the editor is up: content is staged only).</summary>
     public async Task<string?> RestoreSessionAsync()
     {
         var session = SessionMemory.Load();
-        if (session == null || session.Files.Count == 0) return session?.Folder;
+        if (session == null || session.Documents.Count == 0) return session?.Folder;
         var opened = 0;
-        foreach (var file in session.Files)
+        foreach (var entry in session.Documents)
         {
-            if (opened > 0) BeginNewTab();
-            if (await document.LoadAsync(file)) opened++;
+            if (opened > 0) BeginNewTab(entry.DocumentId);
+            else document.PrepareNewTab(entry.DocumentId);
+            bool ok;
+            if (entry.FilePath != null)
+            {
+                ok = await document.LoadAsync(entry.FilePath);
+            }
+            else
+            {
+                var backup = AutoBackup.Read(null, entry.DocumentId);
+                await document.ResetToUntitledAsync(entry.DocumentId, discardCurrent: false, recoveredText: backup);
+                ok = true;
+            }
+            if (ok) opened++;
             else if (opened > 0) AbortNewTab(ActiveTab);
         }
-        var active = session.ActiveIndex < session.Files.Count ? FindByPath(session.Files[session.ActiveIndex]) : null;
+        var active = session.ActiveIndex < session.Documents.Count
+            ? Tabs.FirstOrDefault(t => t.DocumentId == session.Documents[session.ActiveIndex].DocumentId)
+            : null;
         if (active != null && active != ActiveTab) await SwitchToAsync(active);
         return session.Folder;
     }

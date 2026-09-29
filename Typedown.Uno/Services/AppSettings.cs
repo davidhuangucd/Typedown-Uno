@@ -26,6 +26,7 @@ public sealed class AppSettings : INotifyPropertyChanged
 {
     private static readonly string StorePath = Path.Combine(CursorMemory.DataFolder, "settings.json");
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.Never };
+    private static readonly SerializedFileWriter StoreWriter = new(StorePath);
 
     public static AppSettings Current { get; } = Load();
 
@@ -212,7 +213,19 @@ public sealed class AppSettings : INotifyPropertyChanged
     public string HedgeDocEmail { get => hedgeDocEmail; set => Set(ref hedgeDocEmail, value); }
 
     private string hedgeDocPassword = "";
-    public string HedgeDocPassword { get => hedgeDocPassword; set => Set(ref hedgeDocPassword, value); }
+    [JsonIgnore]
+    public string HedgeDocPassword
+    {
+        get => hedgeDocPassword;
+        set
+        {
+            value ??= "";
+            if (hedgeDocPassword == value) return;
+            hedgeDocPassword = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HedgeDocPassword)));
+            CredentialStore.Queue(value);
+        }
+    }
 
     private bool hedgeDocPublishReadOnly = true;
     public bool HedgeDocPublishReadOnly { get => hedgeDocPublishReadOnly; set => Set(ref hedgeDocPublishReadOnly, value); }
@@ -251,20 +264,44 @@ public sealed class AppSettings : INotifyPropertyChanged
         return true;
     }
 
+    private readonly object saveSync = new();
     private CancellationTokenSource? saveCts;
 
     private void ScheduleSave()
     {
-        saveCts?.Cancel();
-        var cts = saveCts = new CancellationTokenSource();
-        _ = Task.Delay(500, cts.Token).ContinueWith(t => { if (!t.IsCanceled) Save(); }, TaskScheduler.Default);
+        string snapshot;
+        try { snapshot = JsonSerializer.Serialize(this, Json); }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"settings snapshot failed: {ex.Message}");
+            return;
+        }
+
+        CancellationTokenSource cts;
+        lock (saveSync)
+        {
+            saveCts?.Cancel();
+            saveCts?.Dispose();
+            cts = saveCts = new CancellationTokenSource();
+        }
+        _ = QueueAfterDelayAsync(snapshot, cts.Token);
+    }
+
+    private static async Task QueueAfterDelayAsync(string snapshot, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(500, token);
+            StoreWriter.Queue(snapshot);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
 
     public void Save()
     {
         try
         {
-            File.WriteAllText(StorePath, JsonSerializer.Serialize(this, Json));
+            StoreWriter.Queue(JsonSerializer.Serialize(this, Json));
         }
         catch (Exception ex)
         {
@@ -272,12 +309,39 @@ public sealed class AppSettings : INotifyPropertyChanged
         }
     }
 
+    public async Task FlushAsync()
+    {
+        Save();
+        await Task.WhenAll(StoreWriter.FlushAsync(), CredentialStore.FlushAsync());
+    }
+
+    [JsonIgnore]
+    public Exception? LastSaveError => StoreWriter.LastWriteError;
+
     private static AppSettings Load()
     {
         try
         {
             if (File.Exists(StorePath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(StorePath), Json) ?? new AppSettings();
+            {
+                var source = File.ReadAllText(StorePath);
+                var settings = JsonSerializer.Deserialize<AppSettings>(source, Json) ?? new AppSettings();
+                string? legacyPassword = null;
+                try
+                {
+                    using var document = JsonDocument.Parse(source);
+                    if (document.RootElement.TryGetProperty(nameof(HedgeDocPassword), out var value))
+                        legacyPassword = value.GetString();
+                }
+                catch { }
+                settings.hedgeDocPassword = CredentialStore.Load() ?? legacyPassword ?? "";
+                if (!string.IsNullOrEmpty(legacyPassword))
+                {
+                    CredentialStore.Queue(settings.hedgeDocPassword);
+                    StoreWriter.Queue(JsonSerializer.Serialize(settings, Json));
+                }
+                return settings;
+            }
         }
         catch (Exception ex)
         {

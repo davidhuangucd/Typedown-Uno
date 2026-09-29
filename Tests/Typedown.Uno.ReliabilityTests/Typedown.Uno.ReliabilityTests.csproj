@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Typedown.Uno/Services/SafeFile.cs" Link="Services/SafeFile.cs" />
+    <Compile Include="../../Typedown.Uno/Services/SerializedFileWriter.cs" Link="Services/SerializedFileWriter.cs" />
+    <Compile Include="../../Typedown.Uno/Services/TextFileFormat.cs" Link="Services/TextFileFormat.cs" />
+    <Compile Include="../../Typedown.Uno/Services/ThemeDesignerPage.cs" Link="Services/ThemeDesignerPage.cs" />
+    <Compile Include="../../Typedown.Uno/Services/AutoBackup.cs" Link="Services/AutoBackup.cs" />
+    <Compile Include="../../Typedown.Uno/Services/CursorMemory.cs" Link="Services/CursorMemory.cs" />
+    <Compile Include="../../Typedown.Uno/Services/SessionMemory.cs" Link="Services/SessionMemory.cs" />
+    <Compile Include="../../Typedown.Uno/Services/CredentialStore.cs" Link="Services/CredentialStore.cs" />
+  </ItemGroup>
+</Project>

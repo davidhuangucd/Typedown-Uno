@@ -283,5 +283,8 @@
   "UseOldLink": "使用舊連結",
   "RecoverTitle": "還原未儲存的變更",
   "RecoverContent": "Typedown 保留了本文件關閉前的未儲存備份。是否還原？",
-  "Restore": "還原"
+  "Restore": "還原",
+  "EditorNotResponding": "編輯器沒有回應。操作已停止，以免遺失剛輸入的內容。",
+  "ThemeDesigner": "主題配色工具…",
+  "PasswordSessionOnly": "未找到系統憑證儲存。密碼只保留到本次結束 Typedown。"
 }

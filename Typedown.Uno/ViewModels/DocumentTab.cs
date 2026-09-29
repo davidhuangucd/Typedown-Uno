@@ -13,6 +13,9 @@ public sealed class DocumentTab : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>Stable across session restore; distinguishes crash backups for multiple untitled tabs.</summary>
+    public string DocumentId { get; set; } = Guid.NewGuid().ToString("N");
+
     private string? filePath;
     public string? FilePath { get => filePath; set { filePath = value; OnPropertyChanged(); OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(DisplayTitle)); OnPropertyChanged(nameof(ToolTip)); } }
 
