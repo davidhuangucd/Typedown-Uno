@@ -512,6 +512,11 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             case "ClipboardImageRequest":
                 DispatcherQueue.TryEnqueue(async () => await InsertClipboardImageAsync());
                 break;
+            case "ClipboardPasteRequest":
+                // Some WebKit/X11 combinations expose no DataTransferItem entries. Inspecting the native
+                // clipboard lets the host distinguish an image from text and keeps text on the repair path.
+                DispatcherQueue.TryEnqueue(async () => await PasteClipboardContentAsync());
+                break;
             case "ReplaceImageRequest":
                 // The image toolbar's edit button: pick a file, put it where the settings say, and hand the new
                 // path back to the editor, which swaps the src of the image that is selected.
@@ -629,6 +634,25 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         {
             Services.Log.Error("insert image", ex);
             await ShowErrorAsync(Loc.Get("Error"), ex.Message);
+        }
+    }
+
+    /// <summary>Routes a paste that WebKit could not inspect through the native clipboard.</summary>
+    private async Task PasteClipboardContentAsync()
+    {
+        try
+        {
+            var view = Clipboard.GetContent();
+            if (view == null) return;
+            if (view.Contains(StandardDataFormats.Bitmap) ||
+                view.AvailableFormats.Any(f => f.StartsWith("image/", StringComparison.OrdinalIgnoreCase)))
+                await InsertClipboardImageAsync();
+            else
+                await PasteClipboardTextAsync();
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Error("paste from native clipboard", ex);
         }
     }
 

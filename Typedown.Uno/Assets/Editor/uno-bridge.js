@@ -31,8 +31,14 @@
         if (matches(findShortcut, key, ctrl, e.shiftKey, e.altKey)) { e.preventDefault(); e.stopPropagation(); showFind(); return; }
         if (key === 'escape' && !ctrl && findBar && findBar.style.display !== 'none') { e.preventDefault(); e.stopPropagation(); hideFind(); return; }
         // Ctrl+C/Ctrl+X go through the editor so the clipboard carries the Markdown source, the same as the
-        // context menu and as the Windows edition. Ctrl+V stays native: the page's paste listener handles images.
-        if (ctrl && !e.shiftKey && !e.altKey && (key === 'c' || key === 'x') && window.__typedownMuya && selectedText()) {
+        // context menu and as the Windows edition. The paste listener routes Ctrl+V through the host so text and
+        // images use the same native clipboard paths as the menus.
+        // Muya tracks its cursor separately from the browser selection. WebKit can therefore report an empty
+        // window.getSelection() even while the editor has selected text. Always let Muya decide whether there is
+        // anything to copy, except while a regular input (for example the find box) owns the keystroke.
+        var target = e.target;
+        var nativeTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+        if (ctrl && !e.shiftKey && !e.altKey && (key === 'c' || key === 'x') && window.__typedownMuya && !nativeTextInput) {
             if (key === 'x' && isReadOnly()) { e.preventDefault(); return; }
             e.preventDefault();
             e.stopPropagation();
@@ -501,9 +507,11 @@
         var hasText = false;
         for (var k = 0; items && k < items.length; k++) if (items[k].kind === 'string') hasText = true;
         if (!items || !items.length || (!hasText && !hasImage(items))) {
-            // WebKit does not always expose clipboard images to the page (it sees nothing at all in some
-            // sessions); let the host look at the system clipboard instead.
-            send(JSON.stringify({ type: 'message', name: 'ClipboardImageRequest', args: {} }));
+            // WebKit does not always expose the X11 clipboard to the page. The host can distinguish text from
+            // images and use the native clipboard API when the page receives no items.
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            send(JSON.stringify({ type: 'message', name: 'ClipboardPasteRequest', args: {} }));
             return;
         }
         for (var i = 0; i < items.length; i++) {
@@ -518,6 +526,12 @@
             };
             reader.readAsDataURL(file);
             return;
+        }
+        if (hasText) {
+            // Use the host path for text so keyboard and context-menu paste behave identically.
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            send(JSON.stringify({ type: 'message', name: 'ClipboardTextRequest', args: {} }));
         }
     }, true);
 
