@@ -1,1 +1,1 @@
-automation library synced from ../typedown (357f553)
+automation library synced from ../typedown (8a73f34)
