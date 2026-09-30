@@ -1364,7 +1364,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             XamlRoot = XamlRoot,
             RequestedTheme = DialogTheme,
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return null;
+        if (await ShowDialogAsync(dialog) != ContentDialogResult.Primary) return null;
         var name = box.Text.Trim();
         return string.IsNullOrEmpty(name) ? null : name;
     }
@@ -1907,6 +1907,16 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     /// <summary>The settings dialog, while it is up: the shortcut that opens it closes it again.</summary>
     private SettingsDialog? settingsDialog;
 
+    /// <summary>
+    /// Shows a dialog and gives the keyboard back to the editor when it closes: a dialog takes the keyboard into the
+    /// app's own window, and without this keys went nowhere until the reader clicked into the document.
+    /// </summary>
+    private async Task<ContentDialogResult> ShowDialogAsync(ContentDialog dialog)
+    {
+        try { return await dialog.ShowAsync(); }
+        finally { Services.WebViewCaret.Focus(EditorView); }
+    }
+
     private async Task ShowSettingsAsync()
     {
         if (settingsDialog != null)
@@ -1928,7 +1938,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         settingsDialog = dialog;
         try
         {
-            await dialog.ShowAsync();
+            await ShowDialogAsync(dialog);
         }
         finally
         {
@@ -1941,7 +1951,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         var rows = new NumberBox { Header = "Rows", Value = 3, Minimum = 1, Maximum = 50, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline };
         var cols = new NumberBox { Header = "Columns", Value = 3, Minimum = 1, Maximum = 20, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline };
         var dialog = new ContentDialog { Title = Loc.Get("Table"), Content = new StackPanel { Spacing = 8, Children = { rows, cols } }, PrimaryButtonText = Loc.Get("OK"), CloseButtonText = Loc.Get("Cancel"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
             await Post("InsertTable", new { rows = (int)rows.Value, columns = (int)cols.Value });
     }
 
@@ -2126,7 +2136,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
                     return;
                 }
                 var dialog = new ContentDialog { Title = Loc.Get("Shared"), Content = new TextBlock { Text = Loc.Get("HedgeDocChangedPrompt"), TextWrapping = TextWrapping.Wrap }, PrimaryButtonText = Loc.Get("ReUpload"), SecondaryButtonText = Loc.Get("UseOldLink"), CloseButtonText = Loc.Get("Cancel"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
-                var choice = await dialog.ShowAsync();
+                var choice = await ShowDialogAsync(dialog);
                 if (choice == ContentDialogResult.Secondary) { await ShowShareResultAsync(previousResult, null); return; }
                 if (choice != ContentDialogResult.Primary) return;
             }
@@ -2152,7 +2162,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         panel.Children.Add(new TextBox { Text = result.NoteUrl, IsReadOnly = true });
         if (result.PublishedUrl == null) panel.Children.Add(new TextBlock { Text = Loc.Get("EditableWarning"), Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
         var dialog = new ContentDialog { Title = Loc.Get("Shared"), Content = panel, PrimaryButtonText = Loc.Get("CopyLink"), SecondaryButtonText = Loc.Get("OpenInBrowser"), CloseButtonText = Loc.Get("Close"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
-        var choice = await dialog.ShowAsync();
+        var choice = await ShowDialogAsync(dialog);
         if (choice == ContentDialogResult.Primary) { var p = new DataPackage(); p.SetText(result.ShareUrl); Clipboard.SetContent(p); }
         else if (choice == ContentDialogResult.Secondary) await Launcher.LaunchUriAsync(new Uri(result.ShareUrl));
     }
@@ -2261,7 +2271,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             XamlRoot = XamlRoot,
             RequestedTheme = DialogTheme,
         };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary)
         {
             var package = new DataPackage();
             package.SetText(Services.AppInfo.Summary());
@@ -2479,7 +2489,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     private async Task<string?> ShowBuiltInPickerAsync(FilePickerDialog.PickerMode mode, string? suggestedName = null, IEnumerable<string>? extensions = null)
     {
         var dialog = new FilePickerDialog(mode, PickerStartDirectory, suggestedName, extensions) { XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
-        await dialog.ShowAsync();
+        await ShowDialogAsync(dialog);
         return dialog.SelectedPath;
     }
 
@@ -2516,7 +2526,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             DefaultButton = ContentDialogButton.Primary,
             XamlRoot = XamlRoot, RequestedTheme = DialogTheme,
         };
-        return await dialog.ShowAsync() switch
+        return await ShowDialogAsync(dialog) switch
         {
             ContentDialogResult.Primary => DocumentViewModel.AskResult.Yes,
             ContentDialogResult.Secondary => DocumentViewModel.AskResult.No,
@@ -2527,13 +2537,13 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     public async Task<bool> ConfirmAsync(string title, string message, string yes, string no)
     {
         var dialog = new ContentDialog { Title = title, Content = message, PrimaryButtonText = yes, CloseButtonText = no, XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await ShowDialogAsync(dialog) == ContentDialogResult.Primary;
     }
 
     public async Task ShowErrorAsync(string title, string message)
     {
         var dialog = new ContentDialog { Title = title, Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap }, CloseButtonText = Loc.Get("OK"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
-        await dialog.ShowAsync();
+        await ShowDialogAsync(dialog);
     }
 }
 
