@@ -284,6 +284,37 @@ public sealed class UnoAutomationHost : IAutomationHost, IViewHost
         });
     }
 
+    public async Task<DocumentInfo> CloseDocumentAsync(string documentId, long? baseRevision, CancellationToken cancellationToken)
+    {
+        var (window, tab) = await Find(documentId);
+        // Between automation edits of this document, never during one.
+        return await coordinator.ExclusiveAsync(documentId, () => OnWindow(window.WindowId, async w =>
+        {
+            if (w.FindTab(documentId) != tab) throw DocumentNotFound(documentId);
+            var active = w.IsActive(tab);
+            // Typing the page has not reported yet counts: its latest text first.
+            if (active && !(await w.Document.WaitForLoadAsync(UnoAutomationDocument.ReloadTimeoutMs) && await w.Document.FlushContentAsync(UnoAutomationDocument.FlushTimeoutMs)))
+                throw SyncTimeout();
+            var info = Info(w, window.WindowId, tab);
+            if (baseRevision != null && baseRevision != info.Revision)
+                throw new AutomationException(AutomationErrorKind.revision_conflict, "The document changed since baseRevision.", new Dictionary<string, object?> { ["revision"] = info.Revision });
+            if (!info.Saved)
+                throw new AutomationException(AutomationErrorKind.unsaved_changes, "The document has unsaved changes; save it first. Nothing was closed.",
+                    new Dictionary<string, object?> { ["revision"] = info.Revision });
+            var last = w.Tabs.Tabs.Count == 1;
+            if (!await w.Tabs.CloseTabAsync(tab)) throw new AutomationException(AutomationErrorKind.editor_not_ready, "The document could not be closed.");
+            if (last)
+            {
+                // The window keeps an empty untitled document - a new one: the closed document's id is not found again.
+                var id = Guid.NewGuid().ToString("N");
+                w.Document.BecomeNewDocument(id);
+                w.Tabs.ActiveTab.DocumentId = id;
+            }
+            coordinator.Forget(documentId);
+            return info;
+        }), cancellationToken);
+    }
+
     public async Task DiscardDocumentAsync(string documentId, CancellationToken cancellationToken)
     {
         var (window, tab) = await Find(documentId);
