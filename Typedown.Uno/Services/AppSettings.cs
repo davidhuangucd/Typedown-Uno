@@ -246,7 +246,7 @@ public sealed class AppSettings : INotifyPropertyChanged
 
     public void AddRecent(string path)
     {
-        var list = RecentFiles.Where(p => !string.Equals(p, path, StringComparison.OrdinalIgnoreCase)).ToList();
+        var list = RecentFiles.Where(p => !string.Equals(p, path, PathIdentity.Comparison)).ToList();
         list.Insert(0, path);
         RecentFiles = list.Take(15).ToList();
     }

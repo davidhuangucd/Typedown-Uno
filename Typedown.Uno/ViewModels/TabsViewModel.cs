@@ -43,13 +43,7 @@ public sealed class TabsViewModel : INotifyPropertyChanged
     public DocumentTab? FindByPath(string? path)
     {
         if (string.IsNullOrEmpty(path)) return null;
-        var full = SafeFullPath(path);
-        return Tabs.FirstOrDefault(t => t.FilePath != null && string.Equals(SafeFullPath(t.FilePath), full, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string SafeFullPath(string path)
-    {
-        try { return Path.GetFullPath(path); } catch { return path; }
+        return Tabs.FirstOrDefault(t => PathIdentity.Same(t.FilePath, path));
     }
 
     /// <summary>Opens a file: an already open one becomes active; otherwise it gets a tab (reusing a blank or preview tab).</summary>
