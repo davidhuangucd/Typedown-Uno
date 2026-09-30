@@ -28,6 +28,10 @@ export GDK_BACKEND=x11
 exec /opt/typedown-uno/Typedown.Uno "$@"
 EOF
 chmod +x /usr/local/bin/typedown
+if [ -x /opt/typedown-uno/typedownctl ]; then
+  printf '#!/bin/sh\nexec /opt/typedown-uno/typedownctl "$@"\n' > /usr/local/bin/typedownctl
+  chmod +x /usr/local/bin/typedownctl
+fi
 
 # The plain artwork, the same file the deb and the AppImage install; the generated Assets/Icons set is only
 # a fallback, and picking from it alphabetically can land on a 16px variant.

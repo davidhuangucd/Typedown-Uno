@@ -52,6 +52,15 @@ exec /opt/typedown/Typedown.Uno "$@"
 LAUNCH
 chmod +x "$ROOT/usr/bin/$NAME"
 
+# typedownctl (packaging/add-cli.sh put it in the app folder): on the path, as the automation documents say.
+if [ -x "$ROOT/opt/$NAME/typedownctl" ]; then
+  cat > "$ROOT/usr/bin/typedownctl" <<'CTL'
+#!/bin/sh
+exec /opt/typedown/typedownctl "$@"
+CTL
+  chmod +x "$ROOT/usr/bin/typedownctl"
+fi
+
 cat > "$ROOT/usr/share/applications/$NAME.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application

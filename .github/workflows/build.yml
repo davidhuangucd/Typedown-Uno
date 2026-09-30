@@ -67,6 +67,11 @@ jobs:
         run: |
           dotnet publish Typedown.Uno/Typedown.Uno.csproj -f net9.0-desktop -c Release -r ${{ matrix.rid }} --self-contained \
             -p:PublishSingleFile=false -o publish/Typedown-${{ matrix.name }}
+          # typedownctl and the automation documents beside the app (the local automation API is Linux/macOS here;
+          # on Windows the native edition serves it).
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            ./packaging/add-cli.sh publish/Typedown-${{ matrix.name }} ${{ matrix.rid }}
+          fi
 
       - name: Archive
         shell: bash
