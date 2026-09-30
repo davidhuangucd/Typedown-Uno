@@ -13,6 +13,10 @@ public sealed class AutomationWindow
     public required Task StartupReady { get; init; }
     public required Func<bool> IsVisible { get; init; }
     public required Action Activate { get; init; }
+    /// <summary>The window itself, for its bounds (window.getView / window.setView).</summary>
+    public required Func<Microsoft.UI.Xaml.Window?> Window { get; init; }
+    /// <summary>The size the editor's web view is laid out at, in view pixels.</summary>
+    public required Func<(double Width, double Height)> EditorSize { get; init; }
     /// <summary>The title marker: a client is connected.</summary>
     public required Action<bool> SetConnected { get; init; }
     /// <summary>The title notice after a write ("{client} edited {document}").</summary>

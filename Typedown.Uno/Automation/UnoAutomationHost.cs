@@ -10,7 +10,7 @@ namespace Typedown.Uno.Automation;
 /// WindowsAutomationHost (docs/automation-api-spec.md in the Windows repository). Every call runs on the dispatcher of
 /// the window that holds the document; nothing here shows a dialog.
 /// </summary>
-public sealed class UnoAutomationHost : IAutomationHost
+public sealed class UnoAutomationHost : IAutomationHost, IViewHost
 {
     /// <summary>The classifier version of the editor bundle (services/normalization.ts).</summary>
     public const int EditorClassifierVersion = 3;
@@ -293,5 +293,100 @@ public sealed class UnoAutomationHost : IAutomationHost
             coordinator.Forget(documentId);
             return true;
         });
+    }
+
+    private static ViewState ReadView(AutomationWindow w)
+    {
+        var settings = AppSettings.Current;
+        var appWindow = w.Window()?.AppWindow;
+        return new ViewState
+        {
+            Mode = settings.SourceCode ? "source" : settings.ReadOnly ? "reading" : "visual",
+            SidePaneOpen = settings.SidePaneOpen,
+            SidePanePage = settings.SidePanePage == 1 ? "outline" : "files",
+            StatusBar = settings.StatusBarOpen,
+            FocusMode = settings.FocusMode,
+            Typewriter = settings.Typewriter,
+            X = appWindow?.Position.X ?? 0,
+            Y = appWindow?.Position.Y ?? 0,
+            Width = appWindow?.Size.Width ?? 0,
+            Height = appWindow?.Size.Height ?? 0,
+            Maximized = appWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter { State: Microsoft.UI.Windowing.OverlappedPresenterState.Maximized },
+        };
+    }
+
+    public const int SettleTimeoutMs = 3000;
+
+    /// <summary>
+    /// Until the page shows the new layout: the web view is a native window of its own on X11, moved and resized after
+    /// Uno's layout, and its page answers frames while it still has the old size (a screenshot then shows the side pane
+    /// over stale editor pixels). A resized window is laid out only once the window manager confirms the new size, so
+    /// an early probe finds the old page matching the old layout: done when the page's viewport has been the size the
+    /// view is laid out at, and that size unchanged, for several probes in a row.
+    /// </summary>
+    private static async Task SettleAsync(AutomationWindow w)
+    {
+        const int steadyProbes = 4;
+        var deadline = DateTime.UtcNow.AddMilliseconds(SettleTimeoutMs);
+        var steady = 0;
+        (double, double)? last = null;
+        while (true)
+        {
+            var viewport = await w.Document.PageViewportAsync(QueryTimeoutMs);
+            var (width, height) = w.EditorSize();
+            var matches = viewport is { } v && Math.Abs(v.Width - width) <= 2 && Math.Abs(v.Height - height) <= 2;
+            steady = matches && last == (width, height) ? steady + 1 : matches ? 1 : 0;
+            last = (width, height);
+            if (steady >= steadyProbes) return;
+            if (DateTime.UtcNow > deadline)
+            {
+                Console.Error.WriteLine($"[Typedown.Uno] automation: the page viewport {viewport} did not reach {width}x{height}");
+                return;
+            }
+            await Task.Delay(50);
+        }
+    }
+
+    public Task<ViewState> GetViewAsync(string windowId, CancellationToken cancellationToken) =>
+        Registry.OnWindowAsync(windowId, ReadView);
+
+    /// <summary>
+    /// Mode, side pane, status bar, focus and typewriter are the app's own settings (the menu changes the same ones,
+    /// and they are remembered); bounds belong to this window. A mode switch waits until the editor shows the document
+    /// again, and runs between - never during - automation edits of the window's active document.
+    /// </summary>
+    public async Task<ViewState> SetViewAsync(string windowId, ViewChange change, CancellationToken cancellationToken)
+    {
+        var documentId = await Registry.OnWindowAsync(windowId, w => w.Tabs.ActiveTab?.DocumentId ?? "");
+        return await coordinator.ExclusiveAsync(documentId, () => OnWindow(windowId, async w =>
+        {
+            var settings = AppSettings.Current;
+            var modeChanged = change.Mode != null && change.Mode != ReadView(w).Mode;
+            if (modeChanged)
+            {
+                // Setting one on turns the other off (AppSettings); visual turns both off.
+                if (change.Mode == "source") settings.SourceCode = true;
+                else if (change.Mode == "reading") settings.ReadOnly = true;
+                else { settings.SourceCode = false; settings.ReadOnly = false; }
+            }
+            if (change.SidePanePage != null) settings.SidePanePage = change.SidePanePage == "outline" ? 1 : 0;
+            if (change.SidePaneOpen is bool open) settings.SidePaneOpen = open;
+            if (change.StatusBar is bool statusBar) settings.StatusBarOpen = statusBar;
+            if (change.FocusMode is bool focus) settings.FocusMode = focus;
+            if (change.Typewriter is bool typewriter) settings.Typewriter = typewriter;
+            if ((change.X != null || change.Y != null || change.Width != null || change.Height != null) && w.Window()?.AppWindow is { } appWindow)
+            {
+                if (appWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter { State: not Microsoft.UI.Windowing.OverlappedPresenterState.Restored } presenter)
+                    presenter.Restore();
+                if (change.Width != null || change.Height != null)
+                    appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = change.Width ?? appWindow.Size.Width, Height = change.Height ?? appWindow.Size.Height });
+                if (change.X != null || change.Y != null)
+                    appWindow.Move(new Windows.Graphics.PointInt32 { X = change.X ?? appWindow.Position.X, Y = change.Y ?? appWindow.Position.Y });
+            }
+            if (modeChanged && !await w.Document.WaitForLoadAsync(UnoAutomationDocument.ReloadTimeoutMs))
+                throw new AutomationException(AutomationErrorKind.content_sync_timeout, "The editor did not show the document again after the mode switch.");
+            await SettleAsync(w);
+            return ReadView(w);
+        }), cancellationToken);
     }
 }

@@ -24,9 +24,55 @@ public sealed class UnoSettingsHost : ISettingsHost
 
     public long Revision => Interlocked.Read(ref revision);
 
+    private static readonly string[] Original = { "appearance.theme", "editor.fontSize", "editor.lineHeight", "editor.textDirection" };
+    private static readonly string[] Indentations = { "1", "2", "4", "tab" };
+
+    /// <summary>
+    /// The other exposed settings this edition has (settings-map.json, "uno"), one line each: how the external value
+    /// is read from and written to AppSettings, the same properties the settings dialog sets. A value this edition
+    /// cannot take throws setting_invalid naming the reason.
+    /// </summary>
+    private static readonly Dictionary<string, (Func<AppSettings, JToken> get, Action<AppSettings, JToken> set)> Simple = new()
+    {
+        ["ui.language"] = (s => string.IsNullOrEmpty(s.Language) ? "system" : s.Language, (s, v) =>
+        {
+            var code = (string)v!;
+            if (code == "system") { s.Language = ""; return; }
+            if (code != "en" && !LocaleTables.All.ContainsKey(code)) throw Unsupported("ui.language", "unsupportedLanguage");
+            s.Language = code;
+        }),
+        ["editor.fontFamily"] = (s => s.FontFamily ?? "", (s, v) => s.FontFamily = (string)v!),
+        ["editor.areaWidth"] = (s => s.EditorAreaWidth, (s, v) => s.EditorAreaWidth = (string)v!),
+        ["editor.tabSize"] = (s => s.TabSize, (s, v) => s.TabSize = (int)(long)v),
+        ["editor.paragraphMarkers"] = (s => s.ShowParagraphMarker, (s, v) => s.ShowParagraphMarker = (bool)v),
+        ["editor.autoPairBrackets"] = (s => s.AutoPairBracket, (s, v) => s.AutoPairBracket = (bool)v),
+        ["editor.autoPairQuotes"] = (s => s.AutoPairQuote, (s, v) => s.AutoPairQuote = (bool)v),
+        ["editor.autoPairMarkdown"] = (s => s.AutoPairMarkdownSyntax, (s, v) => s.AutoPairMarkdownSyntax = (bool)v),
+        ["markdown.alignTableColumns"] = (s => s.TableAlignColumns, (s, v) => s.TableAlignColumns = (bool)v),
+        ["markdown.listIndentation"] = (s => s.ListIndentation, (s, v) =>
+        {
+            if (!Indentations.Contains((string)v!)) throw Unsupported("markdown.listIndentation", "unsupportedValue");
+            s.ListIndentation = (string)v!;
+        }),
+        ["markdown.looseListItems"] = (s => s.PreferLooseListItem, (s, v) => s.PreferLooseListItem = (bool)v),
+        ["markdown.trimCodeBlockBlankLines"] = (s => s.TrimUnnecessaryCodeBlockEmptyLines, (s, v) => s.TrimUnnecessaryCodeBlockEmptyLines = (bool)v),
+        ["spellcheck.enabled"] = (s => s.SpellcheckEnabled, (s, v) => s.SpellcheckEnabled = (bool)v),
+        ["tabs.alwaysShow"] = (s => s.AlwaysShowTabBar, (s, v) => s.AlwaysShowTabBar = (bool)v),
+        ["status.wordCount"] = (s => s.WordCountMethod switch { WordCountMethod.Characters => "characters", WordCountMethod.Paragraphs => "paragraphs", _ => "words" },
+            (s, v) => s.WordCountMethod = (string)v! switch { "characters" => WordCountMethod.Characters, "paragraphs" => WordCountMethod.Paragraphs, _ => WordCountMethod.Words }),
+        ["images.preferRelativePaths"] = (s => s.PreferRelativeImagePaths, (s, v) => s.PreferRelativeImagePaths = (bool)v),
+    };
+
+    private static AutomationException Unsupported(string key, string reason) =>
+        new(AutomationErrorKind.setting_invalid, $"This value of '{key}' is not available here: {reason}.",
+            new Dictionary<string, object?> { ["key"] = key, ["reason"] = reason });
+
+    public bool Supports(string key) => Original.Contains(key) || Simple.ContainsKey(key);
+
     public Task<JToken> GetAsync(string key, CancellationToken cancellationToken)
     {
         var s = Settings;
+        if (Simple.TryGetValue(key, out var simple)) return Task.FromResult(simple.get(s));
         JToken value = key switch
         {
             "appearance.theme" => string.IsNullOrEmpty(s.CustomTheme)
@@ -72,6 +118,7 @@ public sealed class UnoSettingsHost : ISettingsHost
                 case "editor.fontSize": s.FontSize = (int)(long)value; break;
                 case "editor.lineHeight": s.LineHeight = (double)value; break;
                 case "editor.textDirection": s.TextDirection = (string)value!; break;
+                case var other when Simple.TryGetValue(other, out var simple): simple.set(s, value); break;
                 default: throw new AutomationException(AutomationErrorKind.setting_not_exposed, $"'{key}' is not an external setting.");
             }
             return true;

@@ -43,6 +43,7 @@ public static class AutomationRuntime
             {
                 var methods = DocumentMethods.AddTo(new MethodTable(BuildTypes.Application), host, info.InstanceId, OnWrite);
                 SettingsMethods.AddTo(methods, settingsHost, catalog);
+                ViewMethods.AddTo(methods, host);
                 return new AutomationSession(info, methods);
             },
             info.MaxMessageBytes);

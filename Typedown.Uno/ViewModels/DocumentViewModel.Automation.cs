@@ -89,6 +89,14 @@ public sealed partial class DocumentViewModel
         return await AskPageAsync("PresentationFrames:" + token, "AwaitPresentation", new { token }, timeoutMs) != null;
     }
 
+    /// <summary>The page's viewport in CSS pixels after two more frames, or null when it did not answer in time.</summary>
+    public async Task<(double Width, double Height)?> PageViewportAsync(int timeoutMs)
+    {
+        var token = ++automationToken;
+        var reply = await AskPageAsync("PresentationFrames:" + token, "AwaitPresentation", new { token }, timeoutMs);
+        return reply?["width"] is JsonNode w && reply["height"] is JsonNode h ? (w.GetValue<double>(), h.GetValue<double>()) : null;
+    }
+
     // ---- restoring reload --------------------------------------------------------------------------------------
 
     private int automationReloadId = -1;

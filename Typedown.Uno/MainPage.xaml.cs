@@ -2151,6 +2151,8 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             StartupReady = automationStartup.Task,
             IsVisible = () => window?.Visible ?? true,
             Activate = () => window?.Activate(),
+            Window = () => window,
+            EditorSize = () => (EditorView.ActualWidth, EditorView.ActualHeight),
             SetConnected = connected => { automationConnected = connected; UpdateTitle(); },
             ShowNotice = notice => { automationNotice = notice; UpdateTitle(); },
             Notice = () => automationNotice,
