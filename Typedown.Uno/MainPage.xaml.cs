@@ -1240,7 +1240,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         if (string.IsNullOrEmpty(path) || folderIsExplicit) return;
         var dir = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(dir)) return;
-        if (workFolder == null || !dir.StartsWith(workFolder, StringComparison.OrdinalIgnoreCase))
+        if (workFolder == null || !dir.StartsWith(workFolder, Services.PathIdentity.Comparison))
             SetWorkFolder(dir);
     }
 

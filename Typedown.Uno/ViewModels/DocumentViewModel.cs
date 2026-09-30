@@ -386,11 +386,15 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     /// </summary>
     private const int SourceModeAboveChars = 150000;
 
-    private void SwitchToSourceForLargeDocument(string text)
+    private async Task SwitchToSourceForLargeDocumentAsync(string text)
     {
         if (settings.SourceCode || text.Length <= SourceModeAboveChars) return;
         settings.SourceCode = true;
         ui.ShowStatus(Loc.Format("LargeDocumentSourceMode", text.Length / 1000));
+        // The settings change reaches the page through the dispatcher queue, after the LoadFile posted next: the page
+        // then lays the whole document out in the formatted view first, which WebKitGTK does not finish for minutes.
+        // Tell the page now, so the document arrives in source mode (the queued change repeats it harmlessly).
+        if (EditorReady) await transport.PostMessage("SettingsChanged", new Dictionary<string, object?> { ["sourceCode"] = true });
     }
 
     public Task<string?> PickOpenAsync() => ui.PickOpenFileAsync();
@@ -403,7 +407,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
             if (!File.Exists(path)) throw new FileNotFoundException(Loc.Get("CannotOpen"), path);
             var (text, format) = await TextFileFormat.ReadAsync(path);
             FileFormat = format;
-            SwitchToSourceForLargeDocument(text);
+            await SwitchToSourceForLargeDocumentAsync(text);
             StopWatching();
             FilePath = Path.GetFullPath(path);
             Markdown = text;
