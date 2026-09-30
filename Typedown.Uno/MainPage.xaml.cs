@@ -809,7 +809,8 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
 
     /// <summary>
     /// Gives a dialog the colours of the custom theme, so that opening one over a themed window does not drop
-    /// back to the built-in palette. A theme that names no colours leaves the dialog as it is.
+    /// back to the built-in palette. A theme that names no colours leaves the dialog as it is; the accent is the
+    /// application's (<see cref="ApplyAccentResources"/>).
     /// </summary>
     private void PaintFromTheme(ContentDialog dialog)
     {
@@ -819,16 +820,55 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         var foreground = Brush(theme.Foreground) ?? Readable(theme.Surface ?? theme.Background);
         if (background != null) dialog.Background = background;
         if (foreground != null) dialog.Foreground = foreground;
-        // The accent reaches the buttons and switches through the resources their templates look up, which is
-        // resolved when the dialog is built — so it only works for a dialog that is created fresh each time.
-        if (ParseAccent(theme.Accent) is not { } accent) return;
-        var accentBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, (byte)accent.Item1, (byte)accent.Item2, (byte)accent.Item3));
-        foreach (var key in new[] { "AccentFillColorDefaultBrush", "AccentFillColorSecondaryBrush", "AccentFillColorTertiaryBrush", "AccentControlElevationBorderBrush" })
-            dialog.Resources[key] = accentBrush;
-        var onAccent = Readable($"#{accent.Item1:x2}{accent.Item2:x2}{accent.Item3:x2}");
-        if (onAccent != null)
-            foreach (var key in new[] { "TextOnAccentFillColorPrimaryBrush", "TextOnAccentFillColorSecondaryBrush" })
-                dialog.Resources[key] = onAccent;
+    }
+
+    /// <summary>The settings dialog open while the theme changes takes the new theme, colours and accent.</summary>
+    private void RepaintOpenDialog()
+    {
+        if (settingsDialog is not { } dialog) return;
+        dialog.ClearValue(Control.BackgroundProperty);
+        dialog.ClearValue(Control.ForegroundProperty);
+        PaintFromTheme(dialog);
+        dialog.RequestedTheme = DialogTheme;
+        Retheme(dialog);
+    }
+
+    /// <summary>Through the other theme and back: every theme resource below the element is looked up again.</summary>
+    private static void Retheme(FrameworkElement element)
+    {
+        var requested = element.RequestedTheme;
+        element.RequestedTheme = element.ActualTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
+        element.RequestedTheme = requested;
+    }
+
+    private static readonly string[] AccentBrushKeys =
+        { "AccentFillColorDefaultBrush", "AccentFillColorSecondaryBrush", "AccentFillColorTertiaryBrush", "AccentControlElevationBorderBrush" };
+    private static readonly string[] OnAccentBrushKeys = { "TextOnAccentFillColorPrimaryBrush", "TextOnAccentFillColorSecondaryBrush" };
+    private static readonly string[] AccentColorKeys =
+        { "SystemAccentColor", "SystemAccentColorLight1", "SystemAccentColorLight2", "SystemAccentColorLight3", "SystemAccentColorDark1", "SystemAccentColorDark2", "SystemAccentColorDark3" };
+
+    /// <summary>
+    /// The custom theme's accent for every control, in the application's resources: a list's selected item looks
+    /// its accent up there once its state changes, whatever its dialog says (a dialog-only accent showed the theme's
+    /// colour until the pointer moved, then the system blue). A theme without an accent takes them out again.
+    /// </summary>
+    private static void ApplyAccentResources(Services.CustomTheme? theme)
+    {
+        var resources = Application.Current.Resources;
+        foreach (var key in AccentBrushKeys.Concat(OnAccentBrushKeys).Concat(AccentColorKeys)) resources.Remove(key);
+        if (ParseAccent(theme?.Accent) is not { } accent) return;
+        Windows.UI.Color Shade(double amount) => amount >= 0
+            ? Windows.UI.Color.FromArgb(255, (byte)(accent.Item1 + (255 - accent.Item1) * amount), (byte)(accent.Item2 + (255 - accent.Item2) * amount), (byte)(accent.Item3 + (255 - accent.Item3) * amount))
+            : Windows.UI.Color.FromArgb(255, (byte)(accent.Item1 * (1 + amount)), (byte)(accent.Item2 * (1 + amount)), (byte)(accent.Item3 * (1 + amount)));
+        var shades = new[] { 0, .2, .4, .6, -.2, -.4, -.6 };
+        for (var i = 0; i < AccentColorKeys.Length; i++) resources[AccentColorKeys[i]] = Shade(shades[i]);
+        var accentBrush = new SolidColorBrush(Shade(0));
+        resources["AccentFillColorDefaultBrush"] = accentBrush;
+        resources["AccentFillColorSecondaryBrush"] = new SolidColorBrush(Windows.UI.Color.FromArgb(230, (byte)accent.Item1, (byte)accent.Item2, (byte)accent.Item3));
+        resources["AccentFillColorTertiaryBrush"] = new SolidColorBrush(Windows.UI.Color.FromArgb(204, (byte)accent.Item1, (byte)accent.Item2, (byte)accent.Item3));
+        resources["AccentControlElevationBorderBrush"] = accentBrush;
+        if (Readable($"#{accent.Item1:x2}{accent.Item2:x2}{accent.Item3:x2}") is { } onAccent)
+            foreach (var key in OnAccentBrushKeys) resources[key] = onAccent;
     }
 
     /// <summary>Opens the document that explains the theme format, which ships next to the app.</summary>
@@ -1792,10 +1832,21 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     private void ApplyTheme(bool post)
     {
         var effective = EffectiveTheme;
+        var theme = Services.ThemeFiles.Find(settings.CustomTheme);
+        ApplyAccentResources(theme);
         if (window?.Content is FrameworkElement root)
             root.RequestedTheme = effective == AppTheme.System ? ElementTheme.Default
                 : effective == AppTheme.Light ? ElementTheme.Light : ElementTheme.Dark;
-        ApplyShellColours(Services.ThemeFiles.Find(settings.CustomTheme));
+        ApplyShellColours(theme);
+        if (post && window?.Content is FrameworkElement shown)
+        {
+            // A template looks its theme resources up when it is applied and again only when the element's theme
+            // changes; brushes changed since (the tab colours, the accent) are not looked up again. The selected tab
+            // then kept the previous theme's colour, and a list in a dialog showed the new accent in one state and
+            // the old one in the next. Going through the other theme and back makes every element look them up.
+            Retheme(shown);
+            RepaintOpenDialog();
+        }
         ApplyEditorWindowBackground();
         if (!post) return;
         _ = Post("ThemeChanged", ThemePayload());
