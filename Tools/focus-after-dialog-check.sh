@@ -27,11 +27,17 @@ export DOTNET_ROOT=/root/.dotnet HOME=$T/home XDG_DATA_HOME=$T/data XDG_RUNTIME_
 "$UNO" $T/docs/a.md > $T/app.log 2>&1 &
 APP=$!
 SOCK=$T/run/typedown/automation.v1.sock
-for i in $(seq 1 120); do [ -S $SOCK ] && break; sleep 0.5; done
+for i in $(seq 1 40); do [ -S $SOCK ] && break; sleep 0.5; done
 sleep 6
 ctl() { $CTL --json --endpoint $SOCK "$@"; }
-ID=$(ctl documents | python3 -c 'import json,sys; print(json.load(sys.stdin)["documents"][0]["documentId"])')
-text() { ctl get $ID --latest --text | python3 -c 'import json,sys; print(json.load(sys.stdin)["text"].replace("\n","|"))'; }
+if [ -S $SOCK ] && [ -f ${CTL##* } ]; then
+  ID=$(ctl documents | python3 -c 'import json,sys; print(json.load(sys.stdin)["documents"][0]["documentId"])')
+  text() { ctl get $ID --latest --text | python3 -c 'import json,sys; print(json.load(sys.stdin)["text"].replace("\n","|"))'; }
+else
+  # A build without the automation API (main): what the document holds is what Ctrl+S writes - which also needs the
+  # keyboard, so a lost keyboard still shows as a missing letter.
+  text() { xdotool key ctrl+s; sleep 1.5; tr '\n' '|' < $T/docs/a.md; }
+fi
 shot() { import -window root $T/$1.png 2>/dev/null; }
 W=$(xdotool search --name "Typedown" | tail -1); xdotool windowactivate --sync $W 2>/dev/null; sleep 0.5
 # The editor has the keyboard to begin with: a click at the end of the text, a letter.
