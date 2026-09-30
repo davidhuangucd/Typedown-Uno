@@ -128,6 +128,15 @@ public sealed class AppSettings : INotifyPropertyChanged
     private string customCss = "";
     [EditorOption] public string CustomCss { get => customCss; set => Set(ref customCss, value); }
 
+    // ---- local automation (docs/automation-api-spec.md in the Windows repository) ----
+    private bool allowLocalAutomation;
+    /// <summary>Programs running as this user may read and edit open documents through the automation socket. Off by default.</summary>
+    public bool AllowLocalAutomation { get => allowLocalAutomation; set => Set(ref allowLocalAutomation, value); }
+
+    private bool highlightAutomationChanges = true;
+    /// <summary>The editor briefly highlights what an automation write changed.</summary>
+    [EditorOption] public bool HighlightAutomationChanges { get => highlightAutomationChanges; set => Set(ref highlightAutomationChanges, value); }
+
     // ---- files ----
     private bool autoSave;
     public bool AutoSave { get => autoSave; set => Set(ref autoSave, value); }

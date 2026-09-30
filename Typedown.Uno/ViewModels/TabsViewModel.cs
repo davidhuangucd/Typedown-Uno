@@ -69,6 +69,13 @@ public sealed class TabsViewModel : INotifyPropertyChanged
         if (!ok && started != null) AbortNewTab(started);
         if (ok)
         {
+            // A file read into a reused blank or preview tab is another document than the one it replaced.
+            if (reuse)
+            {
+                var id = Guid.NewGuid().ToString("N");
+                document.BecomeNewDocument(id);
+                ActiveTab.DocumentId = id;
+            }
             ActiveTab.IsPreview = preview;
             settings.AddRecent(document.FilePath!);
         }

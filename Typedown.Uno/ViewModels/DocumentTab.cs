@@ -37,6 +37,8 @@ public sealed class DocumentTab : INotifyPropertyChanged
     public ContentHistory? History { get; set; }
     public JsonNode? Cursor { get; set; }
     public double? ScrollTop { get; set; }
+    /// <summary>Advances only when the text really changes (docs/automation-fixtures/document-identity.json).</summary>
+    public long Revision { get; set; }
 
     public string Title => FilePath == null ? Loc.Get("Untitled") : Path.GetFileName(FilePath);
     public string DisplayTitle => IsDirty ? Title + " •" : Title;

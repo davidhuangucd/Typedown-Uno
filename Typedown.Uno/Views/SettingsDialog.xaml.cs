@@ -103,6 +103,8 @@ public sealed partial class SettingsDialog : ContentDialog
         Toggle("OpenFilesInNewTab", settings.OpenFilesInNewTab, v => settings.OpenFilesInNewTab = v);
         Toggle("AlwaysShowTabBar", settings.AlwaysShowTabBar, v => settings.AlwaysShowTabBar = v);
         Toggle("StatusBar", settings.StatusBarOpen, v => settings.StatusBarOpen = v);
+        Toggle("LocalAutomation", settings.AllowLocalAutomation, v => settings.AllowLocalAutomation = v, "LocalAutomationDescription");
+        Toggle("HighlightAutomationChanges", settings.HighlightAutomationChanges, v => settings.HighlightAutomationChanges = v, "HighlightAutomationChangesDescription");
         Combo("WordCountMethod", Enum.GetValues<WordCountMethod>().Select(m => Loc.Get("Count" + m)), (int)settings.WordCountMethod, i => settings.WordCountMethod = (WordCountMethod)i);
 
         Section("FilesSection");
