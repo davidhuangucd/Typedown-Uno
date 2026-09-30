@@ -112,7 +112,9 @@ public sealed partial class DocumentViewModel : INotifyPropertyChanged, IDisposa
         switch (name)
         {
             case "FileLoaded":
-                if (IsStale(args) || FileLoaded) return;
+                if (IsStale(args)) return;
+                ConfirmedLoadId = LoadId;
+                if (FileLoaded) return;
                 if (CompleteAutomationReload(args)) return;
                 FileLoaded = true;
                 var text = args?["text"]?.GetValue<string>() ?? "";
@@ -235,7 +237,11 @@ public sealed partial class DocumentViewModel : INotifyPropertyChanged, IDisposa
             CurrentHash = SafeFile.Hash(Markdown);
             Saved = FileHash == CurrentHash;
             Cursor = entry.Cursor?.DeepClone();
-            await transport.PostMessage("SetMarkdown", new { text = entry.Text, cursor = entry.Cursor, basePath = BasePath });
+            // Under a new load id: a report the page made before this (still on its way) is then recognizably older and
+            // dropped, instead of writing the text just undone back over the history. SetMarkdown has no handshake,
+            // so FileLoaded stays as it is.
+            await transport.PostMessage("SetMarkdown", new { text = entry.Text, cursor = entry.Cursor, basePath = BasePath, loadId = ++LoadId });
+            ConfirmedLoadId = LoadId;
             if (!Saved) ScheduleSaveOrBackup();
             return true;
         }

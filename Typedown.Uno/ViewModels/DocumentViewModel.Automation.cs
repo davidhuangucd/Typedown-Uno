@@ -125,12 +125,20 @@ public sealed partial class DocumentViewModel
         return true;
     }
 
-    /// <summary>Waits until the page has confirmed the current load (a write right after an open must not race it).</summary>
+    /// <summary>The last load the page confirmed with FileLoaded (SetMarkdown counts as confirmed when sent).</summary>
+    public int ConfirmedLoadId { get; private set; } = -1;
+
+    /// <summary>
+    /// Waits until the page has confirmed the current load: a write right after an open or a tab switch must not reach
+    /// the page before the document it is meant for. FileLoaded alone is not enough - a tab shown before keeps it set
+    /// while its text is still on the way to the page.
+    /// </summary>
     public async Task<bool> WaitForLoadAsync(int timeoutMs)
     {
-        for (var waited = 0; !FileLoaded; waited += 25)
+        bool Loaded() => FileLoaded && ConfirmedLoadId == LoadId;
+        for (var waited = 0; !Loaded(); waited += 25)
         {
-            if (waited >= timeoutMs || !EditorReady) return FileLoaded;
+            if (waited >= timeoutMs || !EditorReady) return Loaded();
             await Task.Delay(25);
         }
         return true;

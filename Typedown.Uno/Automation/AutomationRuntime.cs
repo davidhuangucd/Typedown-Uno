@@ -34,10 +34,17 @@ public static class AutomationRuntime
             MaxMessageBytes = 32L * 1024 * 1024,
         };
         var host = new UnoAutomationHost(info.Version);
+        var settingsHost = new UnoSettingsHost(settings);
+        var catalog = SettingsCatalog.Load();
         var path = SocketPath;
         server = new AutomationServer(
             () => UnixSocketListener.Open(path),
-            () => new AutomationSession(info, DocumentMethods.AddTo(new MethodTable(BuildTypes.Application), host, info.InstanceId, OnWrite)),
+            () =>
+            {
+                var methods = DocumentMethods.AddTo(new MethodTable(BuildTypes.Application), host, info.InstanceId, OnWrite);
+                SettingsMethods.AddTo(methods, settingsHost, catalog);
+                return new AutomationSession(info, methods);
+            },
             info.MaxMessageBytes);
         server.ActivityChanged += OnActivityChanged;
         server.ListenerFailed += e => Log.Write($"automation: the socket could not listen: {e.Message}");
