@@ -14,10 +14,18 @@ public sealed class UnoSettingsHost : ISettingsHost
     private static readonly string[] BuiltIn = { "system", "light", "dark", "black" };
     private long revision;
 
+    // The AppSettings properties behind the exposed settings (settings-map.json, "uno"): only their changes advance
+    // settingsRevision. The rest - the session, recent files, window state - changed it too, and a client's next
+    // settings.set was refused as stale with none of its settings changed.
+    private static readonly ISet<string> Counted = SettingsCatalog.Load().StoredProperties("uno");
+
     public UnoSettingsHost(AppSettings settings)
     {
         Settings = settings;
-        settings.PropertyChanged += (_, _) => Interlocked.Increment(ref revision);
+        settings.PropertyChanged += (_, e) =>
+        {
+            if (string.IsNullOrEmpty(e.PropertyName) || Counted.Contains(e.PropertyName)) Interlocked.Increment(ref revision);
+        };
     }
 
     private AppSettings Settings { get; }
