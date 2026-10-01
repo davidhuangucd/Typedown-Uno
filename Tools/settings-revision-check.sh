@@ -7,13 +7,13 @@
 # Runs the app under Xvfb + xfwm4 in an isolated profile through typedownctl (build Typedown.Cli first). Needs Xvfb,
 # xfwm4, xdotool, python3.
 #
-#   Tools/settings-revision-check.sh [path to Typedown.Uno] [display number]
+#   [CTL=typedownctl] Tools/settings-revision-check.sh [path to Typedown.Uno] [display number]
 set -u
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 UNO=${1:-$HERE/Typedown.Uno/bin/Debug/net9.0-desktop/Typedown.Uno}
 D=${2:-65}
 T=/tmp/typedown-settings-revision-check
-CTL="${DOTNET:-$HOME/.dotnet/dotnet} $HERE/Typedown.Cli/bin/Debug/net9.0/typedownctl.dll"
+CTL=${CTL:-"${DOTNET:-$HOME/.dotnet/dotnet} $HERE/Typedown.Cli/bin/Debug/net9.0/typedownctl.dll"}
 pkill -f "[X]vfb :$D " ; sleep 0.5
 rm -rf $T && mkdir -p $T/home $T/data/Typedown.Uno $T/run $T/docs && chmod 700 $T/run
 printf '{ "AllowLocalAutomation": true, "FileStartupAction": 2, "Language": "en" }' > $T/data/Typedown.Uno/settings.json
