@@ -86,8 +86,9 @@ xdotool key Escape; sleep 1.5
 xdotool type E; sleep 1
 case "$(text)" in *E*) pass "Escape closed the dialog, and the next letter reached the document";; *) fail "after Escape the letter went nowhere - the dialog still open? ($(text))";; esac
 
-# The X server goes only after the app has exited: taken away while the app shuts down, it crashes Mesa's software
-# GL in Uno's render thread (a segfault at exit that is not the app's).
+# The X server goes only after the app has exited. A SIGTERM can end in a segfault in Uno's render thread - Mesa's
+# software GL still compiling a shader while exit() tears LLVM down - and an X server taken away mid-exit makes
+# that far likelier.
 kill $APP; for i in $(seq 1 30); do kill -0 $APP 2>/dev/null || break; sleep 0.5; done; pkill -f "[X]vfb :$D "
 echo "OVERALL $([ $ok = 1 ] && echo PASS || echo FAIL)"
 [ $ok = 1 ]
