@@ -23,6 +23,55 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     private StartupOptions options = new(null, false, "");
     private Window? window;
     private IntPtr nativeWindow;
+
+    private DispatcherTimer? activationWatch;
+    private bool watchedActive;
+    // A window starts with the keyboard in its editor.
+    private bool editorHadKeyboard = true;
+    private int refocusTicks;
+    // Dialogs up in this window: the keyboard is theirs, and the editor is not given it back under them.
+    private int openDialogs;
+
+    /// <summary>
+    /// Gives the keyboard back to the editor when this window becomes active again, if the editor had it when the
+    /// window was left. Uno raises no Activated when the window manager activates the window (another window closed,
+    /// the reader switched), and the window manager gives the keyboard to the app's window, never to the web view's:
+    /// keys went nowhere until a click. So the window manager's active window is watched, and while this window is
+    /// active, whether the keyboard is the editor's (a field of the page keeps it: nothing is taken from there).
+    /// The same tick puts the editor back when another window has taken it out (see NativeHosts).
+    /// </summary>
+    private void WatchActivation()
+    {
+        if (!OperatingSystem.IsLinux() || activationWatch != null) return;
+        activationWatch = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        activationWatch.Tick += (_, _) =>
+        {
+            var own = NativeWindow();
+            if (own == IntPtr.Zero) return;
+            Services.NativeHosts.Repair(EditorView);
+            var active = Services.X11Window.ActiveWindow() == own;
+            var editor = Services.WebViewCaret.WindowOf(EditorView);
+            if (active && !watchedActive)
+            {
+                Services.WebViewCaret.SetActive(EditorView, true);
+                // The window manager sets the focus on the activated window itself, possibly after this: the hand-over
+                // is repeated on the next ticks while the keyboard is not the editor's.
+                refocusTicks = editorHadKeyboard ? 3 : 0;
+            }
+            if (openDialogs > 0)
+                refocusTicks = 0;
+            else if (active && refocusTicks > 0)
+            {
+                refocusTicks--;
+                if (editor == 0 || (ulong)Services.X11Window.InputFocus() != editor) Services.WebViewCaret.Focus(EditorView);
+            }
+            else if (active && editor != 0)
+                editorHadKeyboard = (ulong)Services.X11Window.InputFocus() == editor;
+            watchedActive = active;
+        };
+        activationWatch.Start();
+        if (window != null) window.Closed += (_, _) => activationWatch?.Stop();
+    }
     private bool nativeIconApplied;
     private DataPackage? clipboardBatch;
     private DateTime clipboardBatchTime;
@@ -66,6 +115,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             // The caret follows the app window's activation (see WebViewCaret).
             Services.WebViewCaret.SetActive(EditorView, args.WindowActivationState != Windows.UI.Core.CoreWindowActivationState.Deactivated);
         };
+        WatchActivation();
         ApplyStrings();
         HookTabBarWheel();
         BuildMenus();
@@ -89,7 +139,11 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         settings.PropertyChanged += OnSettingChanged;
         // The settings are one object shared by every window, so a page that goes away has to take its handlers
         // with it — otherwise the next settings change runs them against a window that no longer exists.
-        Unloaded += (_, _) => DetachFromSettings();
+        Unloaded += (_, _) =>
+        {
+            DetachFromSettings();
+            activationWatch?.Stop();
+        };
         RegisterHostFunctions(transport);
         transport.MessageReceived += OnEditorMessage;
 
@@ -1901,8 +1955,14 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     /// </summary>
     private async Task<ContentDialogResult> ShowDialogAsync(ContentDialog dialog)
     {
-        try { return await dialog.ShowAsync(); }
-        finally { Services.WebViewCaret.Focus(EditorView); }
+        openDialogs++;
+        Services.WebViewCaret.Release(EditorView, NativeWindow());
+        try { return await Services.DialogKeys.CloseOnEscape(dialog).ShowAsync(); }
+        finally
+        {
+            openDialogs--;
+            Services.WebViewCaret.Focus(EditorView);
+        }
     }
 
     private async Task ShowSettingsAsync()

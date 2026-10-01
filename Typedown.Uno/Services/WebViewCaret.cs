@@ -34,6 +34,9 @@ public static class WebViewCaret
     [DllImport(LibGdk)] private static extern IntPtr gdk_window_get_display(IntPtr window);
     [DllImport(LibGdk)] private static extern IntPtr gdk_x11_display_get_xdisplay(IntPtr display);
     [DllImport(LibGdk)] private static extern ulong gdk_x11_window_get_xid(IntPtr window);
+    [DllImport(LibGdk)] private static extern void gdk_x11_display_error_trap_push(IntPtr display);
+    [DllImport(LibGdk)] private static extern void gdk_x11_display_error_trap_pop_ignored(IntPtr display);
+    [DllImport("libX11.so.6")] private static extern int XGetInputFocus(IntPtr display, out ulong focus, out int revertTo);
     [DllImport("libX11.so.6")] private static extern int XSetInputFocus(IntPtr display, ulong window, int revertTo, ulong time);
     [DllImport("libX11.so.6")] private static extern int XFlush(IntPtr display);
 
@@ -43,6 +46,45 @@ public static class WebViewCaret
 
     // Called from the GTK main loop, like pending.
     private static GSourceFunc? pendingFocus;
+    private static GSourceFunc? pendingXid;
+
+    // The X window of each web view's GTK window, found on the GTK thread (WindowOf).
+    private static readonly Dictionary<IntPtr, ulong> xids = new();
+
+    /// <summary>
+    /// The X window of the web view's own GTK window - the one that has the keyboard when the editor has it - or 0
+    /// until it is known (it is looked up on the GTK thread the first time it is asked for).
+    /// </summary>
+    public static ulong WindowOf(object? webViewControl)
+    {
+        if (!OperatingSystem.IsLinux() || webViewControl == null) return 0;
+        try
+        {
+            var view = WebViewBackground.FindWebKitHandle(webViewControl);
+            if (view == IntPtr.Zero) return 0;
+            lock (xids) if (xids.TryGetValue(view, out var known)) return known;
+            pendingXid = _ =>
+            {
+                try
+                {
+                    var window = gtk_widget_get_toplevel(view);
+                    var gdkWindow = window == IntPtr.Zero ? IntPtr.Zero : gtk_widget_get_window(window);
+                    if (gdkWindow != IntPtr.Zero) lock (xids) xids[view] = gdk_x11_window_get_xid(gdkWindow);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("web view window (gtk thread)", ex);
+                }
+                return false;
+            };
+            g_idle_add(pendingXid, IntPtr.Zero);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("web view window", ex);
+        }
+        return 0;
+    }
 
     /// <summary>
     /// Gives the keyboard back to the editor, as a click in it does. A dialog takes the keyboard into the app's own
@@ -64,9 +106,14 @@ public static class WebViewCaret
                     var window = gtk_widget_get_toplevel(view);
                     var gdkWindow = window == IntPtr.Zero ? IntPtr.Zero : gtk_widget_get_window(window);
                     if (gdkWindow == IntPtr.Zero) return false;
-                    var display = gdk_x11_display_get_xdisplay(gdk_window_get_display(gdkWindow));
+                    // A window that is not viewable at this moment (a window closing as it opens) answers with BadMatch,
+                    // and GTK's handler for an X error ends the process: the request goes out inside GDK's error trap.
+                    var gdkDisplay = gdk_window_get_display(gdkWindow);
+                    var display = gdk_x11_display_get_xdisplay(gdkDisplay);
+                    gdk_x11_display_error_trap_push(gdkDisplay);
                     XSetInputFocus(display, gdk_x11_window_get_xid(gdkWindow), RevertToParent, 0);
                     XFlush(display);
+                    gdk_x11_display_error_trap_pop_ignored(gdkDisplay);
                     if (!gtk_window_is_active(window))
                     {
                         var evt = gdk_event_new(GdkFocusChange);
@@ -90,6 +137,53 @@ public static class WebViewCaret
         catch (Exception ex)
         {
             Log.Error("web view focus", ex);
+        }
+    }
+
+    private static GSourceFunc? pendingRelease;
+
+    /// <summary>
+    /// Takes the keyboard from the web view for the app's own window, where a dialog opening in it reads its keys. The
+    /// X focus stays wherever it was when the dialog opened: with the editor typed in, keys went on into the document
+    /// under the dialog - a letter changed it, Escape never reached the dialog. Left alone if the web view does not
+    /// have the keyboard (a field of the page, another app).
+    /// </summary>
+    public static void Release(object? webViewControl, IntPtr appWindow)
+    {
+        if (!OperatingSystem.IsLinux() || webViewControl == null || appWindow == IntPtr.Zero) return;
+        try
+        {
+            var view = WebViewBackground.FindWebKitHandle(webViewControl);
+            if (view == IntPtr.Zero) return;
+            pendingRelease = _ =>
+            {
+                try
+                {
+                    var window = gtk_widget_get_toplevel(view);
+                    var gdkWindow = window == IntPtr.Zero ? IntPtr.Zero : gtk_widget_get_window(window);
+                    if (gdkWindow == IntPtr.Zero) return false;
+                    var gdkDisplay = gdk_window_get_display(gdkWindow);
+                    var display = gdk_x11_display_get_xdisplay(gdkDisplay);
+                    XGetInputFocus(display, out var focus, out int revertTo);
+                    if (focus != gdk_x11_window_get_xid(gdkWindow)) return false;
+                    // As in Focus: an X error (the app window going away) would otherwise end the process.
+                    gdk_x11_display_error_trap_push(gdkDisplay);
+                    XSetInputFocus(display, (ulong)appWindow.ToInt64(), RevertToParent, 0);
+                    XFlush(display);
+                    gdk_x11_display_error_trap_pop_ignored(gdkDisplay);
+                    Log.Write("keyboard taken from the web view for a dialog");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("web view release (gtk thread)", ex);
+                }
+                return false;
+            };
+            g_idle_add(pendingRelease, IntPtr.Zero);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("web view release", ex);
         }
     }
 
