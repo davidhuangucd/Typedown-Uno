@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "./static/css/main.45c37522.css",
-    "main.js": "./static/js/main.e313324c.js",
+    "main.css": "./static/css/main.85e8de16.css",
+    "main.js": "./static/js/main.ecf7deec.js",
     "static/media/DejaVuSansMono.ttf": "./static/media/DejaVuSansMono.9ff4cd0a41ae679059ae.ttf",
     "static/media/DejaVuSansMono-Bold.ttf": "./static/media/DejaVuSansMono-Bold.d707da3273e928fefc1a.ttf",
     "static/media/DejaVuSansMono-BoldOblique.ttf": "./static/media/DejaVuSansMono-BoldOblique.62494923a230eb3b0bc5.ttf",
@@ -81,12 +81,10 @@
     "static/media/KaTeX_Size4-Regular.woff2": "./static/media/KaTeX_Size4-Regular.e418bf257af1052628d8.woff2",
     "static/media/KaTeX_Size3-Regular.woff": "./static/media/KaTeX_Size3-Regular.7947224e8a9914fa332b.woff",
     "static/media/KaTeX_Size3-Regular.woff2": "./static/media/KaTeX_Size3-Regular.e1951519f6f0596f7356.woff2",
-    "index.html": "./index.html",
-    "main.45c37522.css.map": "./static/css/main.45c37522.css.map",
-    "main.e313324c.js.map": "./static/js/main.e313324c.js.map"
+    "index.html": "./index.html"
   },
   "entrypoints": [
-    "static/css/main.45c37522.css",
-    "static/js/main.e313324c.js"
+    "static/css/main.85e8de16.css",
+    "static/js/main.ecf7deec.js"
   ]
 }
