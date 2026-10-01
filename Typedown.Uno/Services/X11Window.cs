@@ -28,6 +28,7 @@ public static class X11Window
     [DllImport(LibX11)] private static extern int XGetWindowProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr offset, IntPtr length, bool delete,
         IntPtr requestedType, out IntPtr actualType, out int actualFormat, out IntPtr items, out IntPtr bytesAfter, out IntPtr data);
     [DllImport(LibX11)] private static extern int XFlush(IntPtr display);
+    [DllImport(LibX11)] private static extern int XGetInputFocus(IntPtr display, out IntPtr focus, out int revertTo);
 
     private static IntPtr display;
 
@@ -36,6 +37,37 @@ public static class X11Window
         if (!OperatingSystem.IsLinux()) return false;
         if (display == IntPtr.Zero) display = XOpenDisplay(IntPtr.Zero);
         return display != IntPtr.Zero;
+    }
+
+    /// <summary>The window the window manager says is active (<c>_NET_ACTIVE_WINDOW</c>), or zero.</summary>
+    public static IntPtr ActiveWindow()
+    {
+        if (!EnsureDisplay()) return IntPtr.Zero;
+        try
+        {
+            var root = XRootWindow(display, XDefaultScreen(display));
+            if (XGetWindowProperty(display, root, XInternAtom(display, "_NET_ACTIVE_WINDOW", false), IntPtr.Zero, (IntPtr)1, false, IntPtr.Zero,
+                    out _, out var format, out var items, out _, out var data) != 0 || data == IntPtr.Zero)
+                return IntPtr.Zero;
+            try { return format == 32 && items != IntPtr.Zero ? Marshal.ReadIntPtr(data) : IntPtr.Zero; }
+            finally { XFree(data); }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("active window", ex);
+            return IntPtr.Zero;
+        }
+    }
+
+    /// <summary>
+    /// The window that has the X keyboard focus. Only compared, never passed back to X: a window being destroyed
+    /// makes a request about it fail with BadWindow, and Xlib's default handler for that ends the process.
+    /// </summary>
+    public static IntPtr InputFocus()
+    {
+        if (!EnsureDisplay()) return IntPtr.Zero;
+        try { XGetInputFocus(display, out var focus, out _); return focus; }
+        catch (Exception ex) { Log.Error("input focus", ex); return IntPtr.Zero; }
     }
 
     /// <summary>Windows already handed to a page, so a second window does not claim the first one's handle.</summary>

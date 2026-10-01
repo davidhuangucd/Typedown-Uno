@@ -259,7 +259,7 @@ public sealed partial class SettingsDialog : ContentDialog
             if (OperatingSystem.IsLinux())
             {
                 var dialog = new FilePickerDialog(FilePickerDialog.PickerMode.Folder, get() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) { XamlRoot = XamlRoot, RequestedTheme = RequestedTheme };
-                await dialog.ShowAsync();
+                await Services.DialogKeys.CloseOnEscape(dialog).ShowAsync();
                 path = dialog.SelectedPath;
             }
             else
