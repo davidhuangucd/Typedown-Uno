@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> es = new()
     {
         ["File"] = "Archivo",
-        ["FirstEditWarning"] = "Editar este documento en modo visual puede reescribir parte de su HTML. Para conservarlo tal cual, edítalo en modo código fuente.",
         ["New"] = "Nuevo",
         ["NewTab"] = "Nueva pestaña",
         ["Open"] = "Abrir…",
@@ -120,12 +119,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "Recargar aunque haya cambios sin guardar",
         ["AskBeforeReload"] = "Preguntar antes de recargar",
         ["OpenFolderAfterExport"] = "Abrir la carpeta después de exportar",
-        ["LocalAutomation"] = "Permitir automatización local",
-        ["LocalAutomationDescription"] = "Los programas que ejecutas en este equipo pueden leer y editar los documentos abiertos. El título de la ventana indica cuándo hay uno conectado.",
-        ["HighlightAutomationChanges"] = "Resaltar los cambios hechos por programas",
-        ["HighlightAutomationChangesDescription"] = "Resalta brevemente el texto que cambió un programa conectado, para que veas qué se modificó.",
-        ["AutomationConnected"] = "Automatización conectada",
-        ["AutomationWrote"] = "{0} editó {1}",
         ["TrimCodeBlock"] = "Quitar líneas vacías innecesarias en los bloques de código",
         ["AutoPairBracket"] = "Cerrar paréntesis automáticamente",
         ["AutoPairQuote"] = "Cerrar comillas automáticamente",
@@ -274,5 +267,12 @@ public static partial class LocaleTables
         ["NextTab"] = "Pestaña siguiente",
         ["PreviousTab"] = "Pestaña anterior",
         ["LastUsedTab"] = "Última pestaña usada",
+        ["AutomationConnected"] = "Automatización conectada",
+        ["AutomationWrote"] = "{0} editó {1}",
+        ["LocalAutomation"] = "Permitir automatización local",
+        ["LocalAutomationDescription"] = "Los programas que ejecutas en este equipo pueden leer y editar los documentos abiertos. El título de la ventana indica cuándo hay uno conectado.",
+        ["HighlightAutomationChanges"] = "Resaltar los cambios hechos por programas",
+        ["HighlightAutomationChangesDescription"] = "Resalta brevemente el texto que cambió un programa conectado, para que veas qué se modificó.",
+        ["FirstEditWarning"] = "Editar este documento en modo visual puede reescribir parte de su HTML. Para conservarlo tal cual, edítalo en modo código fuente.",
     };
 }

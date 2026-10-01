@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> it = new()
     {
         ["File"] = "File",
-        ["FirstEditWarning"] = "Modificare questo documento in modalità visuale può riscrivere parte del suo HTML. Per mantenerlo invariato, modificalo in modalità sorgente.",
         ["New"] = "Nuovo",
         ["NewTab"] = "Nuova scheda",
         ["Open"] = "Apri…",
@@ -120,12 +119,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "Ricarica anche in presenza di modifiche non salvate",
         ["AskBeforeReload"] = "Chiedi prima di ricaricare",
         ["OpenFolderAfterExport"] = "Apri la cartella dopo l'esportazione",
-        ["LocalAutomation"] = "Consenti l'automazione locale",
-        ["LocalAutomationDescription"] = "I programmi che esegui su questo computer possono leggere e modificare i documenti aperti. Il titolo della finestra indica quando uno è connesso.",
-        ["HighlightAutomationChanges"] = "Evidenzia le modifiche fatte dai programmi",
-        ["HighlightAutomationChangesDescription"] = "Evidenzia brevemente il testo modificato da un programma connesso, così puoi vedere cosa è cambiato.",
-        ["AutomationConnected"] = "Automazione connessa",
-        ["AutomationWrote"] = "{0} ha modificato {1}",
         ["TrimCodeBlock"] = "Rimuovi le righe vuote superflue nei blocchi di codice",
         ["AutoPairBracket"] = "Chiudi automaticamente le parentesi",
         ["AutoPairQuote"] = "Chiudi automaticamente le virgolette",
@@ -274,5 +267,12 @@ public static partial class LocaleTables
         ["NextTab"] = "Scheda successiva",
         ["PreviousTab"] = "Scheda precedente",
         ["LastUsedTab"] = "Ultima scheda usata",
+        ["AutomationConnected"] = "Automazione connessa",
+        ["AutomationWrote"] = "{0} ha modificato {1}",
+        ["LocalAutomation"] = "Consenti l'automazione locale",
+        ["LocalAutomationDescription"] = "I programmi che esegui su questo computer possono leggere e modificare i documenti aperti. Il titolo della finestra indica quando uno è connesso.",
+        ["HighlightAutomationChanges"] = "Evidenzia le modifiche fatte dai programmi",
+        ["HighlightAutomationChangesDescription"] = "Evidenzia brevemente il testo modificato da un programma connesso, così puoi vedere cosa è cambiato.",
+        ["FirstEditWarning"] = "Modificare questo documento in modalità visuale può riscrivere parte del suo HTML. Per mantenerlo invariato, modificalo in modalità sorgente.",
     };
 }

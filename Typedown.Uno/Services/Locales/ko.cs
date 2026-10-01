@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> ko = new()
     {
         ["File"] = "파일",
-        ["FirstEditWarning"] = "시각 모드에서 이 문서를 편집하면 원시 HTML 일부가 다시 쓰일 수 있습니다. 그대로 유지하려면 소스 모드에서 편집하세요.",
         ["New"] = "새로 만들기",
         ["NewTab"] = "새 탭",
         ["Open"] = "열기…",
@@ -120,12 +119,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "저장하지 않은 변경이 있어도 다시 불러오기",
         ["AskBeforeReload"] = "다시 불러오기 전에 확인",
         ["OpenFolderAfterExport"] = "내보낸 후 폴더 열기",
-        ["LocalAutomation"] = "로컬 자동화 허용",
-        ["LocalAutomationDescription"] = "이 컴퓨터에서 실행하는 프로그램이 열려 있는 문서를 읽고 편집할 수 있습니다. 연결되면 창 제목에 표시됩니다.",
-        ["HighlightAutomationChanges"] = "프로그램이 변경한 내용 강조",
-        ["HighlightAutomationChangesDescription"] = "연결된 프로그램이 변경한 텍스트를 잠시 강조하여 무엇이 바뀌었는지 볼 수 있게 합니다.",
-        ["AutomationConnected"] = "자동화 연결됨",
-        ["AutomationWrote"] = "{0}이(가) {1}을(를) 편집함",
         ["TrimCodeBlock"] = "코드 블록의 불필요한 빈 줄 정리",
         ["AutoPairBracket"] = "괄호 자동 완성",
         ["AutoPairQuote"] = "따옴표 자동 완성",
@@ -274,5 +267,12 @@ public static partial class LocaleTables
         ["NextTab"] = "다음 탭",
         ["PreviousTab"] = "이전 탭",
         ["LastUsedTab"] = "마지막으로 사용한 탭",
+        ["AutomationConnected"] = "자동화 연결됨",
+        ["AutomationWrote"] = "{0}이(가) {1}을(를) 편집함",
+        ["LocalAutomation"] = "로컬 자동화 허용",
+        ["LocalAutomationDescription"] = "이 컴퓨터에서 실행하는 프로그램이 열려 있는 문서를 읽고 편집할 수 있습니다. 연결되면 창 제목에 표시됩니다.",
+        ["HighlightAutomationChanges"] = "프로그램이 변경한 내용 강조",
+        ["HighlightAutomationChangesDescription"] = "연결된 프로그램이 변경한 텍스트를 잠시 강조하여 무엇이 바뀌었는지 볼 수 있게 합니다.",
+        ["FirstEditWarning"] = "시각 모드에서 이 문서를 편집하면 원시 HTML 일부가 다시 쓰일 수 있습니다. 그대로 유지하려면 소스 모드에서 편집하세요.",
     };
 }

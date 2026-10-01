@@ -286,5 +286,12 @@
   "GoTo": "Go to",
   "EditorNotResponding": "The editor did not respond. The operation was stopped so recent text is not lost.",
   "ThemeDesigner": "Theme designer…",
-  "PasswordSessionOnly": "No system credential store was found. The password is kept only until Typedown exits."
+  "PasswordSessionOnly": "No system credential store was found. The password is kept only until Typedown exits.",
+  "AutomationConnected": "Automation connected",
+  "AutomationWrote": "{0} edited {1}",
+  "LocalAutomation": "Allow local automation",
+  "LocalAutomationDescription": "Programs you run on this computer can read and edit open documents. The window title shows when one is connected.",
+  "HighlightAutomationChanges": "Highlight changes made by programs",
+  "HighlightAutomationChangesDescription": "Briefly highlights the text a connected program changed, so you can see what moved.",
+  "FirstEditWarning": "Editing this document in visual mode may rewrite some of its raw HTML. To keep it exactly as it is, edit it in source mode."
 }

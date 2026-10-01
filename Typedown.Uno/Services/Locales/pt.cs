@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> pt = new()
     {
         ["File"] = "Arquivo",
-        ["FirstEditWarning"] = "Editar este documento no modo visual pode reescrever parte do seu HTML. Para mantê-lo como está, edite-o no modo de código-fonte.",
         ["New"] = "Novo",
         ["NewTab"] = "Nova guia",
         ["Open"] = "Abrir…",
@@ -120,12 +119,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "Recarregar mesmo com alterações não salvas",
         ["AskBeforeReload"] = "Perguntar antes de recarregar",
         ["OpenFolderAfterExport"] = "Abrir a pasta após exportar",
-        ["LocalAutomation"] = "Permitir automação local",
-        ["LocalAutomationDescription"] = "Os programas que você executa neste computador podem ler e editar os documentos abertos. O título da janela indica quando há um conectado.",
-        ["HighlightAutomationChanges"] = "Realçar alterações feitas por programas",
-        ["HighlightAutomationChangesDescription"] = "Realça brevemente o texto alterado por um programa ligado, para que veja o que mudou.",
-        ["AutomationConnected"] = "Automação conectada",
-        ["AutomationWrote"] = "{0} editou {1}",
         ["TrimCodeBlock"] = "Remover linhas vazias desnecessárias nos blocos de código",
         ["AutoPairBracket"] = "Fechar parênteses automaticamente",
         ["AutoPairQuote"] = "Fechar aspas automaticamente",
@@ -274,5 +267,12 @@ public static partial class LocaleTables
         ["NextTab"] = "Separador seguinte",
         ["PreviousTab"] = "Separador anterior",
         ["LastUsedTab"] = "Último separador usado",
+        ["AutomationConnected"] = "Automação conectada",
+        ["AutomationWrote"] = "{0} editou {1}",
+        ["LocalAutomation"] = "Permitir automação local",
+        ["LocalAutomationDescription"] = "Os programas que você executa neste computador podem ler e editar os documentos abertos. O título da janela indica quando há um conectado.",
+        ["HighlightAutomationChanges"] = "Realçar alterações feitas por programas",
+        ["HighlightAutomationChangesDescription"] = "Realça brevemente o texto alterado por um programa ligado, para que veja o que mudou.",
+        ["FirstEditWarning"] = "Editar este documento no modo visual pode reescrever parte do seu HTML. Para mantê-lo como está, edite-o no modo de código-fonte.",
     };
 }

@@ -259,5 +259,12 @@
   "ImageFailed": "L'image n'a pas pu être créée.",
   "NextTab": "Onglet suivant",
   "PreviousTab": "Onglet précédent",
-  "LastUsedTab": "Dernier onglet utilisé"
+  "LastUsedTab": "Dernier onglet utilisé",
+  "AutomationConnected": "Automatisation connectée",
+  "AutomationWrote": "{0} a modifié {1}",
+  "LocalAutomation": "Autoriser l'automatisation locale",
+  "LocalAutomationDescription": "Les programmes que vous exécutez sur cet ordinateur peuvent lire et modifier les documents ouverts. Le titre de la fenêtre indique quand l'un d'eux est connecté.",
+  "HighlightAutomationChanges": "Surligner les modifications faites par des programmes",
+  "HighlightAutomationChangesDescription": "Surligne brièvement le texte modifié par un programme connecté, pour que vous voyiez ce qui a changé.",
+  "FirstEditWarning": "Modifier ce document en mode visuel peut réécrire une partie de son HTML brut. Pour le garder tel quel, modifiez-le en mode source."
 }

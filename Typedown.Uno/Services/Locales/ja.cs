@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> ja = new()
     {
         ["File"] = "ファイル",
-        ["FirstEditWarning"] = "ビジュアルモードでこの文書を編集すると、生の HTML の一部が書き換えられることがあります。そのまま保つには、ソースモードで編集してください。",
         ["New"] = "新規",
         ["NewTab"] = "新しいタブ",
         ["Open"] = "開く…",
@@ -120,12 +119,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "保存していない変更があっても再読み込みする",
         ["AskBeforeReload"] = "再読み込み前に確認する",
         ["OpenFolderAfterExport"] = "エクスポート後にフォルダーを開く",
-        ["LocalAutomation"] = "ローカル自動化を許可",
-        ["LocalAutomationDescription"] = "このコンピューターで実行するプログラムが、開いている文書を読み取り、編集できます。接続中はウィンドウのタイトルに表示されます。",
-        ["HighlightAutomationChanges"] = "プログラムによる変更を強調表示",
-        ["HighlightAutomationChangesDescription"] = "接続中のプログラムが変更したテキストを一時的に強調表示し、どこが変わったかを確認できるようにします。",
-        ["AutomationConnected"] = "自動化が接続中",
-        ["AutomationWrote"] = "{0} が {1} を編集しました",
         ["TrimCodeBlock"] = "コードブロックの不要な空行を削除",
         ["AutoPairBracket"] = "括弧の自動補完",
         ["AutoPairQuote"] = "引用符の自動補完",
@@ -274,5 +267,12 @@ public static partial class LocaleTables
         ["NextTab"] = "次のタブ",
         ["PreviousTab"] = "前のタブ",
         ["LastUsedTab"] = "最後に使ったタブ",
+        ["AutomationConnected"] = "自動化が接続中",
+        ["AutomationWrote"] = "{0} が {1} を編集しました",
+        ["LocalAutomation"] = "ローカル自動化を許可",
+        ["LocalAutomationDescription"] = "このコンピューターで実行するプログラムが、開いている文書を読み取り、編集できます。接続中はウィンドウのタイトルに表示されます。",
+        ["HighlightAutomationChanges"] = "プログラムによる変更を強調表示",
+        ["HighlightAutomationChangesDescription"] = "接続中のプログラムが変更したテキストを一時的に強調表示し、どこが変わったかを確認できるようにします。",
+        ["FirstEditWarning"] = "ビジュアルモードでこの文書を編集すると、生の HTML の一部が書き換えられることがあります。そのまま保つには、ソースモードで編集してください。",
     };
 }

@@ -259,5 +259,12 @@
   "ImageFailed": "画像を作成できませんでした。",
   "NextTab": "次のタブ",
   "PreviousTab": "前のタブ",
-  "LastUsedTab": "最後に使ったタブ"
+  "LastUsedTab": "最後に使ったタブ",
+  "AutomationConnected": "自動化が接続中",
+  "AutomationWrote": "{0} が {1} を編集しました",
+  "LocalAutomation": "ローカル自動化を許可",
+  "LocalAutomationDescription": "このコンピューターで実行するプログラムが、開いている文書を読み取り、編集できます。接続中はウィンドウのタイトルに表示されます。",
+  "HighlightAutomationChanges": "プログラムによる変更を強調表示",
+  "HighlightAutomationChangesDescription": "接続中のプログラムが変更したテキストを一時的に強調表示し、どこが変わったかを確認できるようにします。",
+  "FirstEditWarning": "ビジュアルモードでこの文書を編集すると、生の HTML の一部が書き換えられることがあります。そのまま保つには、ソースモードで編集してください。"
 }

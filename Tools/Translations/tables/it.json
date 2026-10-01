@@ -259,5 +259,12 @@
   "ImageFailed": "Impossibile creare l'immagine.",
   "NextTab": "Scheda successiva",
   "PreviousTab": "Scheda precedente",
-  "LastUsedTab": "Ultima scheda usata"
+  "LastUsedTab": "Ultima scheda usata",
+  "AutomationConnected": "Automazione connessa",
+  "AutomationWrote": "{0} ha modificato {1}",
+  "LocalAutomation": "Consenti l'automazione locale",
+  "LocalAutomationDescription": "I programmi che esegui su questo computer possono leggere e modificare i documenti aperti. Il titolo della finestra indica quando uno è connesso.",
+  "HighlightAutomationChanges": "Evidenzia le modifiche fatte dai programmi",
+  "HighlightAutomationChangesDescription": "Evidenzia brevemente il testo modificato da un programma connesso, così puoi vedere cosa è cambiato.",
+  "FirstEditWarning": "Modificare questo documento in modalità visuale può riscrivere parte del suo HTML. Per mantenerlo invariato, modificalo in modalità sorgente."
 }

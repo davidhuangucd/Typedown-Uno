@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> fr = new()
     {
         ["File"] = "Fichier",
-        ["FirstEditWarning"] = "Modifier ce document en mode visuel peut réécrire une partie de son HTML brut. Pour le garder tel quel, modifiez-le en mode source.",
         ["New"] = "Nouveau",
         ["NewTab"] = "Nouvel onglet",
         ["Open"] = "Ouvrir…",
@@ -120,12 +119,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "Recharger même en cas de modifications non enregistrées",
         ["AskBeforeReload"] = "Demander avant de recharger",
         ["OpenFolderAfterExport"] = "Ouvrir le dossier après l'export",
-        ["LocalAutomation"] = "Autoriser l'automatisation locale",
-        ["LocalAutomationDescription"] = "Les programmes que vous exécutez sur cet ordinateur peuvent lire et modifier les documents ouverts. Le titre de la fenêtre indique quand l'un d'eux est connecté.",
-        ["HighlightAutomationChanges"] = "Surligner les modifications faites par des programmes",
-        ["HighlightAutomationChangesDescription"] = "Surligne brièvement le texte modifié par un programme connecté, pour que vous voyiez ce qui a changé.",
-        ["AutomationConnected"] = "Automatisation connectée",
-        ["AutomationWrote"] = "{0} a modifié {1}",
         ["TrimCodeBlock"] = "Supprimer les lignes vides inutiles des blocs de code",
         ["AutoPairBracket"] = "Fermer les parenthèses automatiquement",
         ["AutoPairQuote"] = "Fermer les guillemets automatiquement",
@@ -274,5 +267,12 @@ public static partial class LocaleTables
         ["NextTab"] = "Onglet suivant",
         ["PreviousTab"] = "Onglet précédent",
         ["LastUsedTab"] = "Dernier onglet utilisé",
+        ["AutomationConnected"] = "Automatisation connectée",
+        ["AutomationWrote"] = "{0} a modifié {1}",
+        ["LocalAutomation"] = "Autoriser l'automatisation locale",
+        ["LocalAutomationDescription"] = "Les programmes que vous exécutez sur cet ordinateur peuvent lire et modifier les documents ouverts. Le titre de la fenêtre indique quand l'un d'eux est connecté.",
+        ["HighlightAutomationChanges"] = "Surligner les modifications faites par des programmes",
+        ["HighlightAutomationChangesDescription"] = "Surligne brièvement le texte modifié par un programme connecté, pour que vous voyiez ce qui a changé.",
+        ["FirstEditWarning"] = "Modifier ce document en mode visuel peut réécrire une partie de son HTML brut. Pour le garder tel quel, modifiez-le en mode source.",
     };
 }

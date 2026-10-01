@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> de = new()
     {
         ["File"] = "Datei",
-        ["FirstEditWarning"] = "Beim Bearbeiten im visuellen Modus kann ein Teil des HTML-Codes dieses Dokuments umgeschrieben werden. Um es unverändert zu lassen, bearbeiten Sie es im Quellmodus.",
         ["New"] = "Neu",
         ["NewTab"] = "Neuer Tab",
         ["Open"] = "Öffnen…",
@@ -120,12 +119,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "Auch bei ungespeicherten Änderungen neu laden",
         ["AskBeforeReload"] = "Vor dem Neuladen fragen",
         ["OpenFolderAfterExport"] = "Ordner nach dem Export öffnen",
-        ["LocalAutomation"] = "Lokale Automatisierung zulassen",
-        ["LocalAutomationDescription"] = "Programme, die Sie auf diesem Computer ausführen, können geöffnete Dokumente lesen und bearbeiten. Der Fenstertitel zeigt an, wenn eines verbunden ist.",
-        ["HighlightAutomationChanges"] = "Änderungen durch Programme hervorheben",
-        ["HighlightAutomationChangesDescription"] = "Hebt den von einem verbundenen Programm geänderten Text kurz hervor, damit Sie sehen, was sich geändert hat.",
-        ["AutomationConnected"] = "Automatisierung verbunden",
-        ["AutomationWrote"] = "{0} hat {1} bearbeitet",
         ["TrimCodeBlock"] = "Überflüssige Leerzeilen in Codeblöcken entfernen",
         ["AutoPairBracket"] = "Klammern automatisch schließen",
         ["AutoPairQuote"] = "Anführungszeichen automatisch schließen",
@@ -274,5 +267,12 @@ public static partial class LocaleTables
         ["NextTab"] = "Nächster Tab",
         ["PreviousTab"] = "Vorheriger Tab",
         ["LastUsedTab"] = "Zuletzt benutzter Tab",
+        ["AutomationConnected"] = "Automatisierung verbunden",
+        ["AutomationWrote"] = "{0} hat {1} bearbeitet",
+        ["LocalAutomation"] = "Lokale Automatisierung zulassen",
+        ["LocalAutomationDescription"] = "Programme, die Sie auf diesem Computer ausführen, können geöffnete Dokumente lesen und bearbeiten. Der Fenstertitel zeigt an, wenn eines verbunden ist.",
+        ["HighlightAutomationChanges"] = "Änderungen durch Programme hervorheben",
+        ["HighlightAutomationChangesDescription"] = "Hebt den von einem verbundenen Programm geänderten Text kurz hervor, damit Sie sehen, was sich geändert hat.",
+        ["FirstEditWarning"] = "Beim Bearbeiten im visuellen Modus kann ein Teil des HTML-Codes dieses Dokuments umgeschrieben werden. Um es unverändert zu lassen, bearbeiten Sie es im Quellmodus.",
     };
 }

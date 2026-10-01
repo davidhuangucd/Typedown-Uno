@@ -7,7 +7,6 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> zhHant = new()
     {
         ["File"] = "檔案",
-        ["FirstEditWarning"] = "在視覺化模式下編輯這份文件，可能會改寫其中的部分原始 HTML。需要保持原樣時，請在原始碼模式下編輯。",
         ["New"] = "新增",
         ["NewTab"] = "新增分頁",
         ["Open"] = "開啟…",
@@ -124,12 +123,6 @@ public static partial class LocaleTables
         ["AutoReloadDescription"] = "即使當前有未儲存的更改也直接重新載入",
         ["AskBeforeReload"] = "重新載入前詢問",
         ["OpenFolderAfterExport"] = "匯出後開啟所在資料夾",
-        ["LocalAutomation"] = "允許本機自動化",
-        ["LocalAutomationDescription"] = "本機上以你的身分執行的程式可以讀取和編輯已開啟的文件。有程式連線時，視窗標題會顯示。",
-        ["HighlightAutomationChanges"] = "醒目提示程式所做的變更",
-        ["HighlightAutomationChangesDescription"] = "短暫醒目提示已連線的程式修改過的文字，讓你看清哪裡變了。",
-        ["AutomationConnected"] = "自動化已連線",
-        ["AutomationWrote"] = "{0} 編輯了 {1}",
         ["TrimCodeBlock"] = "去掉程式碼塊多餘的空行",
         ["AutoPairBracket"] = "自動補全括號",
         ["AutoPairQuote"] = "自動補全引號",
@@ -301,5 +294,12 @@ public static partial class LocaleTables
         ["EditorNotResponding"] = "編輯器沒有回應。操作已停止，以免遺失剛輸入的內容。",
         ["ThemeDesigner"] = "主題配色工具…",
         ["PasswordSessionOnly"] = "未找到系統憑證儲存。密碼只保留到本次結束 Typedown。",
+        ["AutomationConnected"] = "自動化已連線",
+        ["AutomationWrote"] = "{0} 編輯了 {1}",
+        ["LocalAutomation"] = "允許本機自動化",
+        ["LocalAutomationDescription"] = "本機上以你的身分執行的程式可以讀取和編輯已開啟的文件。有程式連線時，視窗標題會顯示。",
+        ["HighlightAutomationChanges"] = "醒目提示程式所做的變更",
+        ["HighlightAutomationChangesDescription"] = "短暫醒目提示已連線的程式修改過的文字，讓你看清哪裡變了。",
+        ["FirstEditWarning"] = "在視覺化模式下編輯這份文件，可能會改寫其中的部分原始 HTML。需要保持原樣時，請在原始碼模式下編輯。",
     };
 }
