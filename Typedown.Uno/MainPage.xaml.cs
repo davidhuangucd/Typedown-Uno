@@ -88,6 +88,12 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     private bool suppressTabSelection;
     private bool closing;
 
+    // Local automation: this window as the API sees it, and what its title says about connected programs.
+    private Automation.AutomationWindow? automationWindow;
+    private readonly TaskCompletionSource automationStartup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool automationConnected;
+    private string? automationNotice;
+
     public MainPage()
     {
         Loc.Apply(settings.Language);
@@ -143,9 +149,11 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         {
             DetachFromSettings();
             activationWatch?.Stop();
+            if (automationWindow != null) Automation.AutomationWindows.Unregister(automationWindow);
         };
         RegisterHostFunctions(transport);
         transport.MessageReceived += OnEditorMessage;
+        RegisterForAutomation();
 
         // Documents are staged before the page loads: the editor's first GetSettings carries the active one.
         string? sessionFolder = null;
@@ -182,6 +190,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         HookWindowClosing();
         PublishNativeChrome();
         HookWheelFallback();
+        automationStartup.TrySetResult();
 
         await StartEditorAsync();
     }
@@ -2251,10 +2260,32 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     /// <summary>Opens another window, optionally with a file already loaded.</summary>
     private void NewWindow(string? file = null) => App.CreateWindow(file);
 
+    private void RegisterForAutomation()
+    {
+        automationWindow = new Automation.AutomationWindow
+        {
+            Document = document!,
+            Tabs = tabs!,
+            StartupReady = automationStartup.Task,
+            IsVisible = () => window?.Visible ?? true,
+            Activate = () => window?.Activate(),
+            Window = () => window,
+            EditorSize = () => (EditorView.ActualWidth, EditorView.ActualHeight),
+            SetConnected = connected => { automationConnected = connected; UpdateTitle(); },
+            ShowNotice = notice => { automationNotice = notice; UpdateTitle(); },
+            Notice = () => automationNotice,
+        };
+        Automation.AutomationWindows.Register(automationWindow, DispatcherQueue);
+        Automation.AutomationRuntime.Initialize(settings);
+    }
+
     private void UpdateTitle()
     {
         var title = document?.Title ?? "Typedown";
         if (settings.ReadOnly) title += " \u00b7 " + Loc.Get("ReadOnly");
+        // Neither can be turned off by a client: the reader always sees that a program is connected or just wrote.
+        if (automationNotice != null) title += " \u00b7 " + automationNotice;
+        else if (automationConnected) title += " \u00b7 " + Loc.Get("AutomationConnected");
         if (window != null) window.Title = title;
         // Uno publishes the title as Latin-1 and, under a window manager, not at all after the window is up;
         // non-ASCII titles need UTF-8, and each window gets its own. Pass the full title (with the reading-mode

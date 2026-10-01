@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- typedownctl for the Linux and macOS packages: the Windows repository's CLI and MCP server (synced into Cli/ and
+       Mcp/ by Tools/sync-automation.sh) over the protocol copy the app compiles. It targets the app's .NET 9 so the
+       packages carry it beside the app on the same runtime files (packaging/add-cli.sh checks they are identical). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>typedownctl</AssemblyName>
+    <RootNamespace>Typedown.Cli</RootNamespace>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- The synced sources carry their own usings. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Typedown.Uno/Automation/Protocol/**/*.cs" Link="Protocol/%(RecursiveDir)%(Filename)%(Extension)" />
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+</Project>

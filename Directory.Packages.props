@@ -6,5 +6,7 @@
     See https://aka.platform.uno/using-uno-sdk#implicit-packages for more information regarding the Implicit Packages.
   -->
   <ItemGroup>
+    <!-- The automation library (Typedown.Uno/Automation/Protocol) is shared with the Windows edition, which uses it. -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>

@@ -10,7 +10,7 @@ namespace Typedown.Uno.ViewModels;
 /// state, load handshake, caret/scroll memory, external change detection, atomic save. Tabs snapshot and restore
 /// this state (<see cref="Capture"/>/<see cref="Restore"/>). UI interactions are injected through <see cref="IHostUi"/>.
 /// </summary>
-public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
+public sealed partial class DocumentViewModel : INotifyPropertyChanged, IDisposable
 {
     public enum AskResult { Yes, No, Cancel }
 
@@ -112,9 +112,14 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         switch (name)
         {
             case "FileLoaded":
-                if (IsStale(args) || FileLoaded) return;
+                if (IsStale(args)) return;
+                ConfirmedLoadId = LoadId;
+                if (FileLoaded) return;
+                if (CompleteAutomationReload(args)) return;
                 FileLoaded = true;
                 var text = args?["text"]?.GetValue<string>() ?? "";
+                // The page hands back the source it was given; anything else is a real change (document-identity.json).
+                if (text != Markdown) Revision++;
                 var loadedHash = SafeFile.Hash(text);
                 Markdown = text;
                 CurrentHash = loadedHash;
@@ -144,11 +149,19 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
                 break;
             case "MarkdownChange":
                 if (IsStale(args)) return;
-                Markdown = args?["text"]?.GetValue<string>() ?? Markdown;
+                if (HoldReport(args)) return;
+                var changed = args?["text"]?.GetValue<string>() ?? Markdown;
+                if (changed != Markdown) Revision++;
+                Markdown = changed;
                 CurrentHash = SafeFile.Hash(Markdown);
                 Saved = FileHash == CurrentHash;
                 if (!applyingHistory) History.ContentChange(Markdown);
                 if (!Saved) ScheduleSaveOrBackup();
+                break;
+            case "DocumentEditApplied":
+            case "NormalizationReport":
+            case "PresentationFrames":
+                OnAutomationReply(name, args);
                 break;
             case "ContentFlushed":
                 {
@@ -219,11 +232,16 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         applyingHistory = true;
         try
         {
+            if (entry.Text != Markdown) Revision++;
             Markdown = entry.Text;
             CurrentHash = SafeFile.Hash(Markdown);
             Saved = FileHash == CurrentHash;
             Cursor = entry.Cursor?.DeepClone();
-            await transport.PostMessage("SetMarkdown", new { text = entry.Text, cursor = entry.Cursor, basePath = BasePath });
+            // Under a new load id: a report the page made before this (still on its way) is then recognizably older and
+            // dropped, instead of writing the text just undone back over the history. SetMarkdown has no handshake,
+            // so FileLoaded stays as it is.
+            await transport.PostMessage("SetMarkdown", new { text = entry.Text, cursor = entry.Cursor, basePath = BasePath, loadId = ++LoadId });
+            ConfirmedLoadId = LoadId;
             if (!Saved) ScheduleSaveOrBackup();
             return true;
         }
@@ -324,6 +342,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         tab.Cursor = Cursor;
         tab.ScrollTop = ScrollTop;
         tab.IsDirty = !Saved;
+        tab.Revision = Revision;
     }
 
     public async Task Restore(DocumentTab tab)
@@ -340,6 +359,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         Saved = tab.Saved;
         Cursor = tab.Cursor;
         ScrollTop = tab.ScrollTop;
+        Revision = tab.Revision;
         // A tab shown before keeps its baseline (the handshake must not reset it); one loaded in the background
         // has never been through the editor and still needs it — PostLoadFile clears FileLoaded, so re-set after.
         await PostLoadFile(Markdown, tab.Cursor, tab.ScrollTop);
@@ -353,6 +373,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
     {
         StopWatching();
         DocumentId = documentId;
+        Revision = 0;
         SetHistory(new ContentHistory());
     }
 
@@ -364,6 +385,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
         if (discardCurrent) AutoBackup.Delete(FilePath, DocumentId);
         StopWatching();
         DocumentId = documentId ?? Guid.NewGuid().ToString("N");
+        Revision = 0;
         SetHistory(new ContentHistory());
         FilePath = null;
         FileFormat = TextFileFormat.Default;
@@ -673,6 +695,7 @@ public sealed class DocumentViewModel : INotifyPropertyChanged, IDisposable
 
     private async Task ApplyDiskTextAsync(string text)
     {
+        if (text != Markdown) Revision++;
         Markdown = text;
         FileHash = CurrentHash = SafeFile.Hash(text);
         DiskHash = FileHash;

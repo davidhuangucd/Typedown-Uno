@@ -35,6 +35,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" />
+    <!-- settings.describe reads the external settings from here (synced with Tools/sync-automation.sh). -->
+    <EmbeddedResource Include="../docs/automation-fixtures/settings-map.json" LogicalName="settings-map.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- App icon: the original Typedown logo instead of the template's placeholder. The sources live outside
          Assets/ because everything under Assets/Icons is also produced by Resizetizer (duplicate publish paths). -->
     <UnoIcon Remove="Assets/Icons/icon.svg" />
