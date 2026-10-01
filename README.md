@@ -48,6 +48,7 @@ The same C# + XAML codebase (Uno Platform, Skia desktop) runs on **Linux, Window
 - **Export & share** — export HTML, print / export PDF, and one-click **share to HedgeDoc** (anonymous or with login; an unchanged document reuses its previous link instead of creating a new one).
 - **Themes & languages** — follow system / light / dark / black, plus your own CSS themes; UI in English, 简体中文 and more.
 - **Fully rebindable shortcuts** — Settings → Shortcuts.
+- **Local automation** (Linux, off by default) — turn on *Allow local automation* in Settings → General, and scripts and AI assistants can read and edit open documents, switch a window's mode and side pane, and change settings. The deb and tar.gz packages carry the `typedownctl` CLI; `typedownctl mcp` is an MCP server for AI tools. What it can do and its security boundary: [local automation](docs/automation.md) (in Chinese) and [MCP](docs/automation-mcp.md).
 
 ---
 
