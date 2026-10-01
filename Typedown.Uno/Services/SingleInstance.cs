@@ -51,7 +51,7 @@ public static class SingleInstance
             listener.Bind(new UnixDomainSocketEndPoint(path));
             listener.Listen(4);
             new Thread(Accept) { IsBackground = true, Name = "single-instance" }.Start();
-            AppDomain.CurrentDomain.ProcessExit += (_, _) => Cleanup();
+            ExitCleanup.Add("single-instance socket", Cleanup);
         }
         catch (Exception ex)
         {
