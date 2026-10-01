@@ -51,10 +51,7 @@ public static class AutomationRuntime
         server.ListenerFailed += e => Log.Write($"automation: the socket could not listen: {e.Message}");
         settings.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AppSettings.AllowLocalAutomation)) Apply(settings.AllowLocalAutomation); };
         // A clean exit closes the socket and removes its file (a crash leaves it; the next start replaces it).
-        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
-        {
-            try { server?.StopAsync().Wait(2000); } catch { }
-        };
+        ExitCleanup.Add("automation socket", () => server?.StopAsync().Wait(2000));
         Apply(settings.AllowLocalAutomation);
     }
 
