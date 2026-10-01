@@ -9,7 +9,7 @@
 #    reached the dialog.
 #
 # Runs the app under Xvfb + xfwm4 in an isolated profile, reads the text through typedownctl (build Typedown.Cli
-# first). Needs Xvfb, xfwm4, xdotool, xwininfo, python3.
+# first; without the automation API the text is read through Ctrl+S). Needs Xvfb, xfwm4, xdotool, xwininfo, python3.
 #
 #   Tools/windows-check.sh [path to Typedown.Uno] [display number]
 set -u
@@ -32,9 +32,16 @@ APP=$!
 SOCK=$T/run/typedown/automation.v1.sock
 for i in $(seq 1 40); do [ -S $SOCK ] && break; sleep 0.5; done
 sleep 6
+[ -S $SOCK ] || sleep 6
 ctl() { $CTL --json --endpoint $SOCK "$@"; }
-ID=$(ctl documents | python3 -c 'import json,sys; print(json.load(sys.stdin)["documents"][0]["documentId"])')
-text() { ctl get $ID --latest --text | python3 -c 'import json,sys; print(json.load(sys.stdin)["text"].replace("\n","|"))'; }
+if [ -S $SOCK ] && [ -f ${CTL##* } ]; then
+  ID=$(ctl documents | python3 -c 'import json,sys; print(json.load(sys.stdin)["documents"][0]["documentId"])')
+  text() { ctl get $ID --latest --text | python3 -c 'import json,sys; print(json.load(sys.stdin)["text"].replace("\n","|"))'; }
+else
+  # A build without the automation API (main): what the document holds is what Ctrl+S writes - which also needs the
+  # keyboard where the letter went, so a letter lost or misplaced still shows.
+  text() { xdotool key ctrl+s; sleep 1.5; tr '\n' '|' < $T/docs/a.md; }
+fi
 ok=1; pass() { echo "PASS $1"; }; fail() { echo "FAIL $1"; ok=0; }
 wins() { xdotool search --onlyvisible --name " - Typedown" 2>/dev/null | sort; }
 # The web views' own X windows, each with its map state.
