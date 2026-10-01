@@ -10,6 +10,7 @@ public static class Loc
         ["CopyContent"] = "Copy Content",
         ["CtrlAndClickOpenLink"] = "Ctrl+Click to Open Link",
         ["InputFootnoteDefine"] = "Input Footnote Definition...",
+        ["FirstEditWarning"] = "Editing this document in visual mode may rewrite some of its raw HTML. To keep it exactly as it is, edit it in source mode.",
         ["InputYAMLFrontMatter"] = "Input YAML Front Matter...",
         ["InputMathFormula"] = "Input Math...",
         ["InputLanguageIdentifier"] = "Input Language Identifier...",

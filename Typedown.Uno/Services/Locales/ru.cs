@@ -7,6 +7,7 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> ru = new()
     {
         ["File"] = "Файл",
+        ["FirstEditWarning"] = "Редактирование этого документа в визуальном режиме может изменить часть его HTML-кода. Чтобы сохранить его как есть, редактируйте в режиме исходного кода.",
         ["New"] = "Создать",
         ["NewTab"] = "Новая вкладка",
         ["Open"] = "Открыть…",

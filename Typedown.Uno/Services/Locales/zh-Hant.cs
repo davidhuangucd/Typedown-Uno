@@ -7,6 +7,7 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> zhHant = new()
     {
         ["File"] = "檔案",
+        ["FirstEditWarning"] = "在視覺化模式下編輯這份文件，可能會改寫其中的部分原始 HTML。需要保持原樣時，請在原始碼模式下編輯。",
         ["New"] = "新增",
         ["NewTab"] = "新增分頁",
         ["Open"] = "開啟…",

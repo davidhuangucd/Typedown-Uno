@@ -7,6 +7,7 @@ public static partial class LocaleTables
     internal static readonly Dictionary<string, string> ko = new()
     {
         ["File"] = "파일",
+        ["FirstEditWarning"] = "시각 모드에서 이 문서를 편집하면 원시 HTML 일부가 다시 쓰일 수 있습니다. 그대로 유지하려면 소스 모드에서 편집하세요.",
         ["New"] = "새로 만들기",
         ["NewTab"] = "새 탭",
         ["Open"] = "열기…",
