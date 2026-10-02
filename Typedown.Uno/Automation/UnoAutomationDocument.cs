@@ -45,7 +45,7 @@ public sealed class UnoAutomationDocument : IEditableDocument
     {
         Live.HoldEditorReports();
         appliedLoadId = Live.LoadId;
-        var reply = await Live.ApplyDocumentEditAsync(command.OperationId, command.TargetRevision, command.BaseContentHash, command.Text, ApplyTimeoutMs);
+        var reply = await Live.ApplyDocumentEditAsync(command.OperationId, command.TargetRevision, command.BaseContentHash, command.Text, command.ScrollToChange, ApplyTimeoutMs);
         if (reply == null) throw new TimeoutException("The editor did not answer ApplyDocumentEdit.");
         switch (reply["outcome"]?.GetValue<string>())
         {

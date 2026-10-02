@@ -72,8 +72,8 @@ public sealed partial class DocumentViewModel
     private int automationToken;
 
     /// <summary>The page's DocumentEditApplied reply, or null when it did not answer in time.</summary>
-    public Task<JsonNode?> ApplyDocumentEditAsync(string operationId, long targetRevision, string baseContentHash, string text, int timeoutMs) =>
-        AskPageAsync("edit:" + operationId, "ApplyDocumentEdit", new { operationId, targetRevision, baseContentHash, text, loadId = LoadId }, timeoutMs);
+    public Task<JsonNode?> ApplyDocumentEditAsync(string operationId, long targetRevision, string baseContentHash, string text, bool scrollToChange, int timeoutMs) =>
+        AskPageAsync("edit:" + operationId, "ApplyDocumentEdit", new { operationId, targetRevision, baseContentHash, text, scrollToChange, loadId = LoadId }, timeoutMs);
 
     /// <summary>What the first visual edit would do to the text shown now; null when the page did not answer.</summary>
     public Task<JsonNode?> QueryNormalizationAsync(int timeoutMs)

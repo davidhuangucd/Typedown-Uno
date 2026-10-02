@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,18 +64,21 @@ namespace Typedown.Automation
     /// <summary>What the host hands the page for one edit (the page-side ApplyDocumentEdit message).</summary>
     public sealed class ApplyCommand
     {
-        public ApplyCommand(string operationId, long targetRevision, string baseContentHash, string text)
+        public ApplyCommand(string operationId, long targetRevision, string baseContentHash, string text, bool scrollToChange = false)
         {
             OperationId = operationId;
             TargetRevision = targetRevision;
             BaseContentHash = baseContentHash;
             Text = text;
+            ScrollToChange = scrollToChange;
         }
 
         public string OperationId { get; }
         public long TargetRevision { get; }
         public string BaseContentHash { get; }
         public string Text { get; }
+        /// <summary>See <see cref="EditRequest.ScrollToChange"/>.</summary>
+        public bool ScrollToChange { get; }
     }
 
     /// <summary>
@@ -159,6 +162,11 @@ namespace Typedown.Automation
         public Func<string, string> Edit { get; set; } = t => t;
         public bool AllowUnknown { get; set; }
         public bool Save { get; set; }
+        /// <summary>
+        /// <c>reveal: "change"</c>: once applied, the page scrolls the first changed block into view when it is off
+        /// screen. The reader's cursor stays where it was.
+        /// </summary>
+        public bool ScrollToChange { get; set; }
     }
 
     public sealed class EditResult
@@ -191,6 +199,9 @@ namespace Typedown.Automation
         // No ConfigureAwait(false) in this class, on purpose: started on a window's UI thread, every step after an
         // await must resume there, because the document's members touch that window's state.
         private readonly Dictionary<string, SemaphoreSlim> locks = new(StringComparer.Ordinal);
+
+        /// <summary>Where the coordinator says what it is waiting for (the platform's log); nothing when unset.</summary>
+        public Action<string>? Diagnostics { get; set; }
         private readonly HashSet<string> quarantined = new(StringComparer.Ordinal);
         private readonly int classifierVersion;
         private readonly IEditBarriers? barriers;
@@ -237,7 +248,12 @@ namespace Typedown.Automation
         public async Task<T> ExclusiveAsync<T>(string documentId, Func<Task<T>> work, CancellationToken cancellationToken)
         {
             var gate = LockFor(documentId);
-            await gate.WaitAsync(cancellationToken);
+            // An operation that waits here long is behind another one on the same document: worth a line in the log.
+            if (!await gate.WaitAsync(5000, cancellationToken))
+            {
+                Diagnostics?.Invoke($"document {documentId}: waiting for another operation on it");
+                await gate.WaitAsync(cancellationToken);
+            }
             try { return await work(); }
             finally { gate.Release(); }
         }
@@ -304,7 +320,7 @@ namespace Typedown.Automation
                 try
                 {
                     // 5-7. The page compares its live text with baseContentHash, applies, and reports.
-                    reply = await document.ApplyInEditorAsync(new ApplyCommand(operationId, targetRevision, baseHash, candidate), CancellationToken.None);
+                    reply = await document.ApplyInEditorAsync(new ApplyCommand(operationId, targetRevision, baseHash, candidate, request.ScrollToChange), CancellationToken.None);
                     if (reply.Outcome == ApplyOutcome.Applied) await Barrier(EditBarrierPoints.AfterEditorMutationBeforeReport, document, operationId);
                 }
                 catch (Exception e) when (e is TimeoutException || e is OperationCanceledException)
