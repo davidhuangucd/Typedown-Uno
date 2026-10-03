@@ -276,6 +276,7 @@ public static partial class LocaleTables
         ["FirstEditWarning"] = "ビジュアルモードでこの文書を編集すると、生の HTML の一部が書き換えられることがあります。そのまま保つには、ソースモードで編集してください。",
         ["RenderPlantUml"] = "PlantUML 図を描画する",
         ["RenderPlantUmlDescription"] = "図のソースを plantuml.com に送信して描画します",
+        ["PlantUmlServer"] = "PlantUML サーバー",
         ["PlantUmlOff"] = "PlantUML 図はオフです（描画するとソースが plantuml.com に送信されます）。設定 > エディターでオンにできます。",
     };
 }

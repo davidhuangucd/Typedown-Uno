@@ -118,6 +118,10 @@ public sealed class AppSettings : INotifyPropertyChanged
     private bool renderPlantUml;
     [EditorOption] public bool RenderPlantUml { get => renderPlantUml; set => Set(ref renderPlantUml, value); }
 
+    // The plantuml-server that draws them (an http(s) address); empty or anything else: plantuml.com.
+    private string plantUmlServer = "";
+    [EditorOption] public string PlantUmlServer { get => plantUmlServer; set => Set(ref plantUmlServer, value ?? ""); }
+
     private bool trimUnnecessaryCodeBlockEmptyLines = true;
     [EditorOption] public bool TrimUnnecessaryCodeBlockEmptyLines { get => trimUnnecessaryCodeBlockEmptyLines; set => Set(ref trimUnnecessaryCodeBlockEmptyLines, value); }
 

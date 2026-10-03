@@ -57,6 +57,7 @@ public static class Loc
         ["LocalAutomation"] = "Allow local automation", ["LocalAutomationDescription"] = "Programs you run on this computer can read and edit open documents. The window title shows when one is connected.", ["HighlightAutomationChanges"] = "Highlight changes made by programs", ["HighlightAutomationChangesDescription"] = "Briefly highlights the text a connected program changed, so you can see what moved.", ["AutomationConnected"] = "Automation connected", ["AutomationWrote"] = "{0} edited {1}", ["TrimCodeBlock"] = "Trim unnecessary empty lines in code blocks",
         ["AutoPairBracket"] = "Auto-pair brackets", ["AutoPairQuote"] = "Auto-pair quotes", ["AutoPairMarkdown"] = "Auto-pair Markdown syntax",
         ["RenderPlantUml"] = "Draw PlantUML diagrams", ["RenderPlantUmlDescription"] = "Sends the diagram's source to plantuml.com, which draws it",
+        ["PlantUmlServer"] = "PlantUML server",
         ["TextDirection"] = "Text direction", ["Dirauto"] = "Automatic", ["Dirltr"] = "Left to right", ["Dirrtl"] = "Right to left",
         ["FontFamily"] = "Font family", ["FontFamilyPlaceholder"] = "Empty = default font", ["CustomCss"] = "Custom CSS",
         ["FindSection"] = "Find", ["FindCaseSensitive"] = "Match case", ["FindWholeWord"] = "Whole word", ["FindRegex"] = "Regular expression",

@@ -131,6 +131,7 @@ public sealed partial class SettingsDialog : ContentDialog
         Toggle("AutoPairQuote", settings.AutoPairQuote, v => settings.AutoPairQuote = v);
         Toggle("AutoPairMarkdown", settings.AutoPairMarkdownSyntax, v => settings.AutoPairMarkdownSyntax = v);
         Toggle("RenderPlantUml", settings.RenderPlantUml, v => settings.RenderPlantUml = v, "RenderPlantUmlDescription");
+        Text("PlantUmlServer", settings.PlantUmlServer, v => settings.PlantUmlServer = v, hint: "https://www.plantuml.com/plantuml");
         MultilineText("CustomCss", settings.CustomCss, v => settings.CustomCss = v);
 
         Section("ImageSection");

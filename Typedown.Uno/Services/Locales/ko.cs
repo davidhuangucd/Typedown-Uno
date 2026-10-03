@@ -276,6 +276,7 @@ public static partial class LocaleTables
         ["FirstEditWarning"] = "시각 모드에서 이 문서를 편집하면 원시 HTML 일부가 다시 쓰일 수 있습니다. 그대로 유지하려면 소스 모드에서 편집하세요.",
         ["RenderPlantUml"] = "PlantUML 다이어그램 그리기",
         ["RenderPlantUmlDescription"] = "다이어그램 소스를 plantuml.com으로 보내 그립니다",
+        ["PlantUmlServer"] = "PlantUML 서버",
         ["PlantUmlOff"] = "PlantUML 다이어그램이 꺼져 있습니다(그리려면 소스를 plantuml.com으로 보냅니다). 설정 > 편집기에서 켤 수 있습니다.",
     };
 }

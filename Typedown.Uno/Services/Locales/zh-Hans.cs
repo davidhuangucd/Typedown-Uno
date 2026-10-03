@@ -303,6 +303,7 @@ public static partial class LocaleTables
         ["FirstEditWarning"] = "在可视模式下编辑这份文档，可能会改写其中的部分原始 HTML。需要保持原样时，请在源码模式下编辑。",
         ["RenderPlantUml"] = "绘制 PlantUML 图表",
         ["RenderPlantUmlDescription"] = "把图表源码发送到 plantuml.com，由它绘制",
+        ["PlantUmlServer"] = "PlantUML 服务器",
         ["PlantUmlOff"] = "PlantUML 图表已关闭（绘制会把源码发送到 plantuml.com）。可在 设置 > 编辑器 中打开。",
     };
 }

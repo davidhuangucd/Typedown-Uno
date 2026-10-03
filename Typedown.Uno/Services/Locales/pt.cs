@@ -276,6 +276,7 @@ public static partial class LocaleTables
         ["FirstEditWarning"] = "Editar este documento no modo visual pode reescrever parte do seu HTML. Para mantê-lo como está, edite-o no modo de código-fonte.",
         ["RenderPlantUml"] = "Desenhar diagramas PlantUML",
         ["RenderPlantUmlDescription"] = "Envia o código do diagrama para plantuml.com para desenhá-lo",
+        ["PlantUmlServer"] = "Servidor PlantUML",
         ["PlantUmlOff"] = "Os diagramas PlantUML estão desativados (desenhar envia o código para plantuml.com). Ative-os em Configurações > Editor.",
     };
 }

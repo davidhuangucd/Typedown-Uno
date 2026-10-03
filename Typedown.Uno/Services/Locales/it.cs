@@ -276,6 +276,7 @@ public static partial class LocaleTables
         ["FirstEditWarning"] = "Modificare questo documento in modalità visuale può riscrivere parte del suo HTML. Per mantenerlo invariato, modificalo in modalità sorgente.",
         ["RenderPlantUml"] = "Disegna diagrammi PlantUML",
         ["RenderPlantUmlDescription"] = "Invia il sorgente del diagramma a plantuml.com per disegnarlo",
+        ["PlantUmlServer"] = "Server PlantUML",
         ["PlantUmlOff"] = "I diagrammi PlantUML sono disattivati (disegnarli invia il sorgente a plantuml.com). Attivali in Impostazioni > Editor.",
     };
 }

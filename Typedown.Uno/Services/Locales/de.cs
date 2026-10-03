@@ -276,6 +276,7 @@ public static partial class LocaleTables
         ["FirstEditWarning"] = "Beim Bearbeiten im visuellen Modus kann ein Teil des HTML-Codes dieses Dokuments umgeschrieben werden. Um es unverändert zu lassen, bearbeiten Sie es im Quellmodus.",
         ["RenderPlantUml"] = "PlantUML-Diagramme zeichnen",
         ["RenderPlantUmlDescription"] = "Sendet den Quelltext des Diagramms zum Zeichnen an plantuml.com",
+        ["PlantUmlServer"] = "PlantUML-Server",
         ["PlantUmlOff"] = "PlantUML-Diagramme sind aus (Zeichnen sendet den Quelltext an plantuml.com). Unter Einstellungen > Editor einschalten.",
     };
 }
