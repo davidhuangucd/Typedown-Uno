@@ -16,7 +16,10 @@ public enum FolderStartupAction { None, OpenLast, OpenFixed }
 public enum WordCountMethod { Words, Characters, Paragraphs }
 
 /// <summary>What happens to an image that is inserted, pasted or dropped into a document.</summary>
-public enum ImageInsertAction { CopyToFolder, KeepPath }
+public enum ImageInsertAction { CopyToFolder, KeepPath, Upload }
+
+/// <summary>Where uploads go (Settings > Images > Upload): an S3-compatible bucket, or a command of the person's own.</summary>
+public enum ImageUploadMethod { None, S3, Command }
 
 /// <summary>
 /// User settings, persisted as JSON under the app data folder. Changing a property raises PropertyChanged and
@@ -211,6 +214,52 @@ public sealed class AppSettings : INotifyPropertyChanged
 
     private bool encodeImageLinks = true;
     public bool EncodeImageLinks { get => encodeImageLinks; set => Set(ref encodeImageLinks, value); }
+
+    // ---- image upload (Services/ImageUploader): inserted images whose action is Upload, File > Upload local images ----
+    private ImageUploadMethod imageUploadMethod;
+    public ImageUploadMethod ImageUploadMethod { get => imageUploadMethod; set => Set(ref imageUploadMethod, value); }
+
+    private string s3Endpoint = "";
+    public string S3Endpoint { get => s3Endpoint; set => Set(ref s3Endpoint, value ?? ""); }
+
+    private string s3Region = "";
+    public string S3Region { get => s3Region; set => Set(ref s3Region, value ?? ""); }
+
+    private string s3Bucket = "";
+    public string S3Bucket { get => s3Bucket; set => Set(ref s3Bucket, value ?? ""); }
+
+    private string s3AccessKey = "";
+    public string S3AccessKey { get => s3AccessKey; set => Set(ref s3AccessKey, value ?? ""); }
+
+    // In the system's protected store, like the HedgeDoc password; read when first needed (secret-tool takes a moment).
+    private string? s3SecretKey;
+    [JsonIgnore]
+    public string S3SecretKey
+    {
+        get => s3SecretKey ??= CredentialStore.Load(CredentialStore.S3) ?? "";
+        set
+        {
+            value ??= "";
+            if (s3SecretKey == value) return;
+            s3SecretKey = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(S3SecretKey)));
+            CredentialStore.Queue(value, CredentialStore.S3);
+        }
+    }
+
+    private bool s3PathStyle;
+    public bool S3PathStyle { get => s3PathStyle; set => Set(ref s3PathStyle, value); }
+
+    private string s3KeyPrefix = "";
+    /// <summary>Folder in the bucket; ${year} ${month} ${day} ${filename} expand.</summary>
+    public string S3KeyPrefix { get => s3KeyPrefix; set => Set(ref s3KeyPrefix, value ?? ""); }
+
+    private string s3PublicUrl = "";
+    public string S3PublicUrl { get => s3PublicUrl; set => Set(ref s3PublicUrl, value ?? ""); }
+
+    private string imageUploadCommand = "";
+    /// <summary>Run by /bin/sh with the image as $1; the last line it prints is the address.</summary>
+    public string ImageUploadCommand { get => imageUploadCommand; set => Set(ref imageUploadCommand, value ?? ""); }
 
     // find bar options (sent to the editor with every search)
     private bool findCaseSensitive;

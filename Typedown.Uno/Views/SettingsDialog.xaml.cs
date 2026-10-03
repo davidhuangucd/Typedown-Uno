@@ -136,11 +136,27 @@ public sealed partial class SettingsDialog : ContentDialog
         MultilineText("CustomCss", settings.CustomCss, v => settings.CustomCss = v);
 
         Section("ImageSection");
-        Combo("ImageAction", new[] { Loc.Get("ImageCopy"), Loc.Get("ImageKeep") }, (int)settings.ImageAction, i => settings.ImageAction = (ImageInsertAction)i);
+        Combo("ImageAction", new[] { Loc.Get("ImageCopy"), Loc.Get("ImageKeep"), Loc.Get("ImageUpload") }, (int)settings.ImageAction, i => settings.ImageAction = (ImageInsertAction)i);
         Text("ImageCopyPath", settings.ImageCopyPath, v => settings.ImageCopyPath = v, hint: "./${filename}.assets");
         Add(new TextBlock { Text = Loc.Get("ImageCopyPathHint"), Opacity = 0.6, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4) });
         Toggle("PreferRelativeImagePaths", settings.PreferRelativeImagePaths, v => settings.PreferRelativeImagePaths = v);
         Toggle("EncodeImageLinks", settings.EncodeImageLinks, v => settings.EncodeImageLinks = v);
+
+        // Where inserted images whose action is Upload, and File > Upload local images, send them (Services/ImageUploader).
+        Section("UploadSection");
+        Combo("UploadMethod", new[] { Loc.Get("UploadMethodNone"), "S3 / R2 / OSS / COS", Loc.Get("UploadMethodCommand") }, (int)settings.ImageUploadMethod, i => settings.ImageUploadMethod = (ImageUploadMethod)i);
+        Text("S3Endpoint", settings.S3Endpoint, v => settings.S3Endpoint = v, hint: "https://<account>.r2.cloudflarestorage.com");
+        Text("S3Region", settings.S3Region, v => settings.S3Region = v, hint: "us-east-1 / auto");
+        Text("S3Bucket", settings.S3Bucket, v => settings.S3Bucket = v);
+        Text("S3AccessKey", settings.S3AccessKey, v => settings.S3AccessKey = v);
+        Password("S3SecretKey", settings.S3SecretKey, v => settings.S3SecretKey = v, CredentialStore.IsPersistentAvailable ? null : "PasswordSessionOnly");
+        Toggle("S3PathStyle", settings.S3PathStyle, v => settings.S3PathStyle = v);
+        Text("S3KeyPrefix", settings.S3KeyPrefix, v => settings.S3KeyPrefix = v, hint: "images/${year}/${month}");
+        Text("S3PublicUrl", settings.S3PublicUrl, v => settings.S3PublicUrl = v, hint: "https://img.example.com");
+        Text("UploadCommand", settings.ImageUploadCommand, v => settings.ImageUploadCommand = v, hint: "picgo upload \"$1\" | tail -n 1");
+        Add(new TextBlock { Text = Loc.Get("UploadCommandHint"), Opacity = 0.6, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4) });
+        UploadTestRow();
+        UploadHistoryRow();
 
         Section("FindSection");
         Toggle("FindCaseSensitive", settings.FindCaseSensitive, v => settings.FindCaseSensitive = v);
@@ -336,6 +352,41 @@ public sealed partial class SettingsDialog : ContentDialog
         (Windows.System.VirtualKey)191 => "/",
         _ => null,
     };
+
+    private void UploadTestRow()
+    {
+        var status = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Opacity = 0.7, TextWrapping = TextWrapping.Wrap, MaxWidth = 260, IsTextSelectionEnabled = true };
+        var button = new Button { Content = Loc.Get("Test") };
+        button.Click += async (_, _) =>
+        {
+            button.IsEnabled = false;
+            status.Text = "…";
+            try { status.Text = await ImageUploader.TestAsync(settings); }
+            catch (Exception ex) { status.Text = ex.Message; }
+            finally { button.IsEnabled = true; }
+        };
+        Add(Row("UploadTest", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { button, status } }));
+    }
+
+    /// <summary>How many pictures the upload history remembers, and a button that forgets them (after deleting uploads).</summary>
+    private void UploadHistoryRow()
+    {
+        var count = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Opacity = 0.7 };
+        async void Update()
+        {
+            try { count.Text = string.Format(Loc.Get("UploadHistoryCount"), await ImageUploader.History.CountAsync()); }
+            catch (Exception ex) { count.Text = ex.Message; }
+        }
+        var clear = new Button { Content = Loc.Get("Clear") };
+        clear.Click += async (_, _) =>
+        {
+            try { await ImageUploader.History.ClearAsync(); }
+            catch (Exception ex) { count.Text = ex.Message; return; }
+            Update();
+        };
+        Update();
+        Add(Row("UploadHistory", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { clear, count } }, "UploadHistoryDescription"));
+    }
 
     private void TestRow()
     {

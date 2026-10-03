@@ -5,32 +5,38 @@ using System.Text;
 namespace Typedown.Uno.Services;
 
 /// <summary>
-/// Persists the HedgeDoc password in the operating system's protected store. Unsupported Linux desktops keep
-/// it for the current process only; plaintext is never written to settings.json or to a fallback file.
+/// Persists secrets - the HedgeDoc password, the S3 secret access key - in the operating system's protected store,
+/// each under an account name. Unsupported Linux desktops keep them for the current process only; plaintext is never
+/// written to settings.json or to a fallback file.
 /// </summary>
 public static class CredentialStore
 {
     private const string Service = "Typedown.Uno";
-    private const string Account = "HedgeDoc";
-    private static readonly string WindowsPath = Path.Combine(CursorMemory.DataFolder, "credentials.dat");
+    public const string HedgeDoc = "HedgeDoc";
+    public const string S3 = "S3";
+    private static string WindowsPath(string account) =>
+        Path.Combine(CursorMemory.DataFolder, account == HedgeDoc ? "credentials.dat" : $"credentials-{account}.dat");
     private static readonly string? SecretTool = FindExecutable("secret-tool");
-    private static readonly SerializedFileWriter writer = new(Account, (_, password) => StoreCoreAsync(password));
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SerializedFileWriter> writers = new();
+
+    private static SerializedFileWriter Writer(string account) =>
+        writers.GetOrAdd(account, a => new SerializedFileWriter(a, (_, secret) => StoreCoreAsync(a, secret)));
 
     public static bool IsPersistentAvailable => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || SecretTool != null;
-    public static Exception? LastWriteError => writer.LastWriteError;
+    public static Exception? LastWriteError => Writer(HedgeDoc).LastWriteError;
 
-    public static string? Load()
+    public static string? Load(string account = HedgeDoc)
     {
         try
         {
             if (OperatingSystem.IsWindows())
             {
-                if (!File.Exists(WindowsPath)) return null;
-                return Encoding.UTF8.GetString(Unprotect(File.ReadAllBytes(WindowsPath)));
+                if (!File.Exists(WindowsPath(account))) return null;
+                return Encoding.UTF8.GetString(Unprotect(File.ReadAllBytes(WindowsPath(account))));
             }
-            if (OperatingSystem.IsMacOS()) return MacLoad();
+            if (OperatingSystem.IsMacOS()) return MacLoad(account);
             if (OperatingSystem.IsLinux() && SecretTool != null)
-                return RunSecretToolAsync(new[] { "lookup", "application", Service, "credential", Account }).GetAwaiter().GetResult();
+                return RunSecretToolAsync(new[] { "lookup", "application", Service, "credential", account }).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -39,33 +45,33 @@ public static class CredentialStore
         return null;
     }
 
-    public static void Queue(string password) => writer.Queue(password ?? "");
+    public static void Queue(string password, string account = HedgeDoc) => Writer(account).Queue(password ?? "");
 
-    public static Task FlushAsync() => writer.FlushAsync();
+    public static Task FlushAsync() => Task.WhenAll(writers.Values.Select(w => w.FlushAsync()));
 
-    private static async Task StoreCoreAsync(string password)
+    private static async Task StoreCoreAsync(string account, string password)
     {
         if (OperatingSystem.IsWindows())
         {
             if (password.Length == 0)
             {
-                try { if (File.Exists(WindowsPath)) File.Delete(WindowsPath); } catch { }
+                try { if (File.Exists(WindowsPath(account))) File.Delete(WindowsPath(account)); } catch { }
                 return;
             }
-            await SafeFile.WriteAllBytesAtomicAsync(WindowsPath, Protect(Encoding.UTF8.GetBytes(password)));
+            await SafeFile.WriteAllBytesAtomicAsync(WindowsPath(account), Protect(Encoding.UTF8.GetBytes(password)));
             return;
         }
         if (OperatingSystem.IsMacOS())
         {
-            MacStore(password);
+            MacStore(account, password);
             return;
         }
         if (OperatingSystem.IsLinux() && SecretTool != null)
         {
             if (password.Length == 0)
-                await RunSecretToolAsync(new[] { "clear", "application", Service, "credential", Account });
+                await RunSecretToolAsync(new[] { "clear", "application", Service, "credential", account });
             else
-                await RunSecretToolAsync(new[] { "store", "--label=Typedown HedgeDoc", "application", Service, "credential", Account }, password);
+                await RunSecretToolAsync(new[] { "store", $"--label=Typedown {account}", "application", Service, "credential", account }, password);
         }
     }
 
@@ -177,10 +183,10 @@ public static class CredentialStore
     [DllImport(CoreFoundation)]
     private static extern void CFRelease(IntPtr value);
 
-    private static string? MacLoad()
+    private static string? MacLoad(string name)
     {
         var service = Encoding.UTF8.GetBytes(Service);
-        var account = Encoding.UTF8.GetBytes(Account);
+        var account = Encoding.UTF8.GetBytes(name);
         var status = SecKeychainFindGenericPassword(IntPtr.Zero, (uint)service.Length, service,
             (uint)account.Length, account, out var length, out var data, out var item);
         if (status == ItemNotFound) return null;
@@ -198,10 +204,10 @@ public static class CredentialStore
         }
     }
 
-    private static void MacStore(string password)
+    private static void MacStore(string name, string password)
     {
         var service = Encoding.UTF8.GetBytes(Service);
-        var account = Encoding.UTF8.GetBytes(Account);
+        var account = Encoding.UTF8.GetBytes(name);
         var status = SecKeychainFindGenericPassword(IntPtr.Zero, (uint)service.Length, service,
             (uint)account.Length, account, out _, out var oldData, out var item);
         if (status != 0 && status != ItemNotFound) throw new IOException($"Keychain lookup failed ({status})");

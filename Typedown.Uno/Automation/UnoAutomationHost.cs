@@ -22,7 +22,7 @@ public sealed class UnoAutomationHost : IAutomationHost, IViewHost
     public UnoAutomationHost(string version)
     {
         Version = version;
-        coordinator = new DocumentEditCoordinator(EditorClassifierVersion);
+        coordinator = DocumentEdits.Coordinator;
     }
 
     public string Version { get; }

@@ -702,7 +702,9 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         if (document == null) return;
         try
         {
-            var link = ImagePaths.PlaceImage(path, document.FilePath, settings);
+            var link = settings.ImageAction == ImageInsertAction.Upload
+                ? await UploadOrKeepAsync(path)
+                : ImagePaths.PlaceImage(path, document.FilePath, settings);
             await PostInsertImage(link, Path.GetFileNameWithoutExtension(path));
             SetStatus(link);
         }
@@ -773,7 +775,16 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
                     return;
                 }
             }
-            var link = ImagePaths.SaveImageBytes(bytes, extension, document.FilePath, settings);
+            string link;
+            if (settings.ImageAction == ImageInsertAction.Upload)
+            {
+                // Uploaded from a file of its own, which goes again once the picture is online.
+                var temp = Path.Combine(Path.GetTempPath(), $"typedown-clipboard-{DateTime.Now:yyyyMMdd-HHmmss}{extension}");
+                await File.WriteAllBytesAsync(temp, bytes);
+                try { link = await UploadOrKeepAsync(temp, keepOnFailure: () => ImagePaths.SaveImageBytes(bytes, extension, document.FilePath, settings)); }
+                finally { try { File.Delete(temp); } catch { } }
+            }
+            else link = ImagePaths.SaveImageBytes(bytes, extension, document.FilePath, settings);
             await PostInsertImage(link, "image");
             SetStatus(link);
         }
@@ -995,6 +1006,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         file.Items.Add(Item("ExportPdf", async () => await ExportPdfAsync(), ShortcutCommand.ExportPdf));
         file.Items.Add(Item("ExportImage", async () => await ExportImageAsync()));
         file.Items.Add(Item("PrintPdf", async () => await PrintAsync(), ShortcutCommand.Print));
+        file.Items.Add(Item("UploadLocalImages", async () => await UploadLocalImagesAsync(), ShortcutCommand.UploadLocalImages));
         file.Items.Add(Item("ShareHedgeDoc", async () => await ShareToHedgeDocAsync(), ShortcutCommand.ShareHedgeDoc));
         file.Items.Add(new MenuFlyoutSeparator());
         file.Items.Add(Item("Settings", async () => await ShowSettingsAsync(), ShortcutCommand.Settings));
@@ -2194,6 +2206,15 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
                 await ShowErrorAsync(Loc.Get("Error"), Loc.Get("EditorNotResponding"));
                 return;
             }
+            // Local pictures are files on this computer: the note's readers would not see them.
+            if (automationWindow != null && (await new ImageBatchUpload(settings, automationWindow).LocalImagesOfDocumentAsync()).Count is var local and > 0)
+            {
+                var ask = new ContentDialog { Title = Loc.Get("ShareHedgeDoc"), Content = new TextBlock { Text = string.Format(Loc.Get("UploadHedgeDocPrompt"), local), TextWrapping = TextWrapping.Wrap }, PrimaryButtonText = Loc.Get("UploadFirst"), SecondaryButtonText = Loc.Get("ShareAnyway"), CloseButtonText = Loc.Get("Cancel"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
+                var answer = await ShowDialogAsync(ask);
+                if (answer == ContentDialogResult.None) return;
+                if (answer == ContentDialogResult.Primary && !await UploadLocalImagesAsync()) return;
+                if (!await document.FlushContentAsync()) return;
+            }
             var markdown = document.Markdown;
             var hash = SafeFile.Hash(markdown);
             var previous = HedgeDocShareMemory.Get(document.FilePath);
@@ -2608,6 +2629,104 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     {
         var dialog = new ContentDialog { Title = title, Content = message, PrimaryButtonText = yes, CloseButtonText = no, XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
         return await ShowDialogAsync(dialog) == ContentDialogResult.Primary;
+    }
+
+    /// <summary>
+    /// An image inserted while its action is Upload: its web address, or - when the upload fails - the error is shown
+    /// and the picture goes in as it would without uploading (copied to the images folder).
+    /// </summary>
+    private async Task<string> UploadOrKeepAsync(string path, Func<string>? keepOnFailure = null)
+    {
+        try
+        {
+            SetStatus(Loc.Get("UploadImagesTitle") + "…");
+            return (await ImageUploader.UploadAsync(settings, path, document?.FilePath)).url;
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Error("upload image", ex);
+            await ShowErrorAsync(Loc.Get("Error"), ex.Message);
+            return keepOnFailure?.Invoke() ?? ImagePaths.PlaceImage(path, document?.FilePath, settings);
+        }
+    }
+
+    /// <summary>
+    /// File > Upload local images, with a progress dialog that can cancel and a dialog with the result. False when
+    /// nothing was uploaded because there is no configuration or the person cancelled.
+    /// </summary>
+    private async Task<bool> UploadLocalImagesAsync()
+    {
+        if (automationWindow == null || document == null) return false;
+        var title = Loc.Get("UploadImagesTitle");
+        try
+        {
+            var batch = new ImageBatchUpload(settings, automationWindow);
+            if ((await batch.LocalImagesOfDocumentAsync()).Count == 0)
+            {
+                await ShowErrorAsync(title, Loc.Get("UploadNone"));
+                return true;
+            }
+            if (!ImageUploader.IsConfigured(settings))
+            {
+                var open = new ContentDialog { Title = title, Content = new TextBlock { Text = Loc.Get("UploadNoConfig"), TextWrapping = TextWrapping.Wrap }, PrimaryButtonText = Loc.Get("UploadOpenSettings"), CloseButtonText = Loc.Get("Cancel"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
+                if (await ShowDialogAsync(open) == ContentDialogResult.Primary) await ShowSettingsAsync();
+                return false;
+            }
+
+            var status = new TextBlock { Text = string.Format(Loc.Get("UploadProgress"), 1, "…"), TextWrapping = TextWrapping.Wrap };
+            var bar = new ProgressBar { IsIndeterminate = true, Margin = new Thickness(0, 12, 0, 0), MinWidth = 320 };
+            var panel = new StackPanel();
+            panel.Children.Add(status);
+            panel.Children.Add(bar);
+            var progressDialog = new ContentDialog { Title = title, Content = panel, CloseButtonText = Loc.Get("Cancel"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme };
+            using var cancel = new CancellationTokenSource();
+            var finished = false;
+            // Hidden before it has opened, a dialog would open anyway and wait for a click: the uploads (instant when
+            // the history knows every picture) start once it is on screen.
+            var opened = new TaskCompletionSource();
+            progressDialog.Opened += (_, _) => opened.TrySetResult();
+            var shown = ShowDialogAsync(progressDialog);
+            await Task.WhenAny(opened.Task, Task.Delay(3000));
+            _ = shown.ContinueWith(_ => { if (!finished) cancel.Cancel(); }, TaskScheduler.FromCurrentSynchronizationContext());
+            var progress = new Progress<(int done, int total)>(p =>
+            {
+                status.Text = string.Format(Loc.Get("UploadProgress"), Math.Min(p.done + 1, p.total), p.total);
+                bar.IsIndeterminate = false;
+                bar.Maximum = Math.Max(p.total, 1);
+                bar.Value = p.done;
+            });
+            ImageBatchUpload.Result result;
+            try { result = await batch.RunAsync(progress, cancel.Token); }
+            finally
+            {
+                finished = true;
+                progressDialog.Hide();
+                await shown;
+            }
+            if (result.NoConfig) return false;
+
+            var summary = string.Format(Loc.Get(result.Cancelled ? "UploadCancelled" : "UploadDone"), result.Uploaded, result.Files);
+            if (result.Reused > 0) summary += " " + string.Format(Loc.Get("UploadReused"), result.Reused);
+            var content = new StackPanel { Spacing = 8 };
+            content.Children.Add(new TextBlock { Text = summary, TextWrapping = TextWrapping.Wrap });
+            if (result.Failures.Count > 0)
+            {
+                content.Children.Add(new TextBlock { Text = Loc.Get("UploadNotUploaded"), TextWrapping = TextWrapping.Wrap });
+                content.Children.Add(new ScrollViewer
+                {
+                    MaxHeight = 240,
+                    Content = new TextBlock { Text = string.Join("\n", result.Failures.Select(f => $"{f.Address}: {f.Reason}")), TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true },
+                });
+            }
+            await ShowDialogAsync(new ContentDialog { Title = title, Content = content, CloseButtonText = Loc.Get("OK"), XamlRoot = XamlRoot, RequestedTheme = DialogTheme });
+            SetStatus(summary);
+            return !result.Cancelled;
+        }
+        catch (Exception ex)
+        {
+            await ShowErrorAsync(Loc.Get("Error"), ex.Message);
+            return false;
+        }
     }
 
     public async Task ShowErrorAsync(string title, string message)
