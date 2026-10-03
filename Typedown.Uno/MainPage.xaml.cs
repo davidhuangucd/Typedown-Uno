@@ -18,7 +18,8 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     private const string EditorHost = "typedown.editor";
 
     /// <summary>What a freshly created window should open.</summary>
-    public sealed record StartupOptions(string? File, bool RestoreSession, string Marker);
+    /// <param name="MoreFiles">Further files opened together with <paramref name="File"/> (several selected in Finder), each in a tab.</param>
+    public sealed record StartupOptions(string? File, bool RestoreSession, string Marker, IReadOnlyList<string>? MoreFiles = null);
 
     private StartupOptions options = new(null, false, "");
     private Window? window;
@@ -160,6 +161,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         if (startupFile != null)
         {
             await tabs.OpenFileAsync(startupFile);
+            foreach (var more in options.MoreFiles ?? Array.Empty<string>()) await tabs.OpenFileAsync(more);
         }
         else
         {
@@ -245,18 +247,29 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
             // The app window was activated before the page existed; the caret needs the view's window active too.
             if (args.IsSuccess) Services.WebViewCaret.SetActive(EditorView, true);
         };
-        // The folder is relative to the app directory (Uno's X11 WebView joins it onto the base directory),
-        // so it must stay relative — an absolute path would be concatenated onto the base directory.
-        core.SetVirtualHostNameToFolderMapping(EditorHost, "Assets/Editor", CoreWebView2HostResourceAccessKind.Allow);
         core.NavigationCompleted += async (_, args) => { if (args.IsSuccess) { await PostShortcutMap(); await PostContextMenuStrings(); await PostFindStrings(); } };
-        EditorView.Source = new Uri($"http://{EditorHost}/index.html");
-        Services.Log.Write("navigating to the editor page");
+        var indexPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Editor", "index.html");
+        if (OperatingSystem.IsMacOS())
+        {
+            // Uno's macOS WebView resolves a mapped folder against the bundle's Resources path once the app runs
+            // from an .app bundle, and joins the two without a separator (".../Contents/ResourcesAssets/Editor"),
+            // so the virtual host never loads there and the page only came up after the 8 s fallback below.
+            EditorView.Source = new Uri(indexPath);
+            Services.Log.Write($"navigating to the editor page from disk ({indexPath})");
+        }
+        else
+        {
+            // The folder is relative to the app directory (Uno's X11 WebView joins it onto the base directory),
+            // so it must stay relative — an absolute path would be concatenated onto the base directory.
+            core.SetVirtualHostNameToFolderMapping(EditorHost, "Assets/Editor", CoreWebView2HostResourceAccessKind.Allow);
+            EditorView.Source = new Uri($"http://{EditorHost}/index.html");
+            Services.Log.Write("navigating to the editor page");
+        }
 
         // Fallback: where the virtual host mapping does not take effect, load the page straight from disk. The
         // editor only needs same-origin access to its own folder, which a file:// URL gives it.
         await Task.Delay(TimeSpan.FromSeconds(8));
         if (editorPageLoaded || transport == null) return;
-        var indexPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Editor", "index.html");
         Services.Log.Write($"virtual host did not load; falling back to {indexPath} (exists={File.Exists(indexPath)})");
         try
         {

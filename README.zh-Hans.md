@@ -62,7 +62,7 @@
 | 任意 Linux x64 | `Typedown-*-x86_64.AppImage` | `chmod +x` 后运行（同样需要上面两个系统库） |
 | Linux x64 便携版 | `Typedown-linux-x64-*.tar.gz` | 解压后 `./Typedown.Uno` |
 | Windows 10/11 x64 | `Typedown-win-x64.zip` | 解压即用；需要 WebView2 运行时（Win11 自带） |
-| macOS（Apple Silicon） | `Typedown-osx-arm64.tar.gz` | 解压后首次运行右键 → 打开（未签名） |
+| macOS（Apple Silicon） | `Typedown-osx-arm64.tar.gz` | 解压后把 `Typedown.app` 拖进“应用程序”，首次运行右键 → 打开（未签名）；`.md` 文件的“打开方式”里会列出它 |
 
 Windows 上原生 **WinUI** 版体验更好：**[flintt/Typedown](https://github.com/flintt/Typedown/releases/latest)**。
 

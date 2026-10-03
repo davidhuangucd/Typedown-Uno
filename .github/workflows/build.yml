@@ -73,6 +73,17 @@ jobs:
             ./packaging/add-cli.sh publish/Typedown-${{ matrix.name }} ${{ matrix.rid }}
           fi
 
+      - name: macOS app bundle (Typedown.app)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          [[ "$version" =~ ^[0-9] ]] || version="0.0.0-$(date +%Y%m%d)"
+          ./packaging/build-macos-app.sh "publish/Typedown-${{ matrix.name }}" "$version" "publish/app-${{ matrix.name }}"
+          rm -rf "publish/Typedown-${{ matrix.name }}"
+          mkdir "publish/Typedown-${{ matrix.name }}"
+          mv "publish/app-${{ matrix.name }}/Typedown.app" "publish/Typedown-${{ matrix.name }}/"
+
       - name: Archive
         shell: bash
         run: |
@@ -133,7 +144,7 @@ jobs:
           | `Typedown-*-x86_64.AppImage` | Any Linux x64 — `chmod +x` and run (same two system libraries required) |
           | `Typedown-linux-x64*.tar.gz` | Linux x64 portable — extract and run `./Typedown.Uno` |
           | `Typedown-win-x64.zip` | Windows 10/11 x64 — needs the WebView2 runtime (present on Windows 11) |
-          | `Typedown-osx-arm64.tar.gz` | macOS Apple Silicon — unsigned: right-click → Open the first time |
+          | `Typedown-osx-arm64.tar.gz` | macOS Apple Silicon — extract, move `Typedown.app` to Applications; unsigned: right-click → Open the first time |
 
           The .NET runtime is bundled; nothing else to install. Settings, session and `debug.log` live in
           `~/.local/share/Typedown.Uno/` (`%LOCALAPPDATA%\Typedown.Uno\` on Windows).
