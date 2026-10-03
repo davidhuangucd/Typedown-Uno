@@ -12,6 +12,8 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- The synced sources carry their own usings. -->
     <ImplicitUsings>disable</ImplicitUsings>
+    <!-- Precompiled like the app (Typedown.Uno.csproj), so the runtime files they share are the same bytes. -->
+    <PublishReadyToRun Condition="'$(RuntimeIdentifier)' != ''">true</PublishReadyToRun>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Typedown.Uno/Automation/Protocol/**/*.cs" Link="Protocol/%(RecursiveDir)%(Filename)%(Extension)" />
