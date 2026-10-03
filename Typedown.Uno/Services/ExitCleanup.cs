@@ -38,7 +38,7 @@ public static class ExitCleanup
                 context.Cancel = true;
                 Log.Write("SIGTERM: cleaning up and ending the process");
                 Run();
-                _exit(128 + 15);
+                ExitNow(128 + 15);
             });
         }
         catch (Exception ex)
@@ -59,6 +59,29 @@ public static class ExitCleanup
         }
     }
 
+    /// <summary>
+    /// _exit from the C library. macOS has none called "libc" - it is libSystem - so the import failed there, the
+    /// handler had already cancelled the signal's own termination, and the process logged the SIGTERM and kept running.
+    /// Should the native call fail all the same, the runtime's exit ends the process (with its teardown, which is what
+    /// _exit avoids on Linux, but a process that stays up after a SIGTERM is worse).
+    /// </summary>
+    private static void ExitNow(int status)
+    {
+        try
+        {
+            if (OperatingSystem.IsMacOS()) _exitMac(status);
+            else _exitLinux(status);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("SIGTERM: _exit", ex);
+        }
+        Environment.Exit(status);
+    }
+
     [DllImport("libc", EntryPoint = "_exit")]
-    private static extern void _exit(int status);
+    private static extern void _exitLinux(int status);
+
+    [DllImport("/usr/lib/libSystem.B.dylib", EntryPoint = "_exit")]
+    private static extern void _exitMac(int status);
 }
