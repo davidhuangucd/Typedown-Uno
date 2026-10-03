@@ -269,5 +269,8 @@
   "FirstEditWarning": "Editar este documento en modo visual puede reescribir parte de su HTML. Para conservarlo tal cual, edítalo en modo código fuente.",
   "RenderPlantUml": "Dibujar diagramas PlantUML",
   "RenderPlantUmlDescription": "Envía el código del diagrama a plantuml.com para dibujarlo",
+  "PlantUmlServer": "Servidor PlantUML",
+  "VimMode": "Teclas de Vim",
+  "VimModeDescription": "Vim en modo código fuente (:w guarda, :q cierra la pestaña); j/k, gg/G, ]] y / para desplazarse en modo lectura. No disponible en el editor visual.",
   "PlantUmlOff": "Los diagramas PlantUML están desactivados (dibujarlos envía el código a plantuml.com). Actívalos en Configuración > Editor."
 }

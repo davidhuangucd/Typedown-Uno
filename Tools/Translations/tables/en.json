@@ -296,5 +296,8 @@
   "FirstEditWarning": "Editing this document in visual mode may rewrite some of its raw HTML. To keep it exactly as it is, edit it in source mode.",
   "RenderPlantUml": "Draw PlantUML diagrams",
   "RenderPlantUmlDescription": "Sends the diagram's source to plantuml.com, which draws it",
+  "PlantUmlServer": "PlantUML server",
+  "VimMode": "Vim keys",
+  "VimModeDescription": "Vim in source mode (:w saves, :q closes the tab); j/k, gg/G, ]] and / to move around in reading mode. Not in the visual editor.",
   "PlantUmlOff": "PlantUML diagrams are off (drawing sends the source to plantuml.com). Turn them on in Settings > Editor."
 }
