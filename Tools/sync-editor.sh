@@ -15,18 +15,24 @@ DEST=$HERE/Typedown.Uno/Assets/Editor
 cp -a "$FROM/." "$DEST/"
 rm -f "$DEST"/static/js/*.map "$DEST"/static/css/*.map
 
-# Whatever the Windows index.html says, the bridge has to be loaded before the editor.
+# Whatever the Windows index.html says, the bridge has to be loaded before the editor, and mermaid only when a
+# document draws a diagram (uno-lazy-mermaid.js says why).
 python3 - "$DEST/index.html" <<'PY'
 import sys
 p = sys.argv[1]
 s = open(p, encoding='utf-8').read()
+eager = '<script src="./mermaid.min.js"></script>'
+lazy = '<script src="./uno-lazy-mermaid.js"></script>'
 if 'uno-bridge.js' not in s:
-    anchor = '<script src="./mermaid.min.js"></script>'
+    anchor = eager if eager in s else lazy
     if anchor not in s:
         raise SystemExit('index.html does not look like the editor page; add the bridge tag by hand')
     s = s.replace(anchor, anchor + '<script src="./uno-bridge.js"></script>', 1)
-    open(p, 'w', encoding='utf-8').write(s)
     print('  put the uno-bridge tag back')
+if eager in s:
+    s = s.replace(eager, lazy, 1)
+    print('  mermaid loads on demand')
+open(p, 'w', encoding='utf-8').write(s)
 PY
 
 # Drop bundles the page no longer references.
