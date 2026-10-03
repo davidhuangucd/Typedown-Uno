@@ -92,6 +92,8 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     // Local automation: this window as the API sees it, and what its title says about connected programs.
     private Automation.AutomationWindow? automationWindow;
     private readonly TaskCompletionSource automationStartup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    // Set once the startup documents are in the tabs: the editor's first GetSettings waits for it (see OnLoaded).
+    private readonly TaskCompletionSource documentsStaged = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool automationConnected;
     private string? automationNotice;
 
@@ -156,26 +158,36 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         transport.MessageReceived += OnEditorMessage;
         RegisterForAutomation();
 
-        // Documents are staged before the page loads: the editor's first GetSettings carries the active one.
+        // The web view and the editor page come up while the documents are staged and the folder tree is built,
+        // rather than after: the page needs about half a second of its own before it asks for anything. Its first
+        // GetSettings carries the active document, so that reply waits for documentsStaged.
+        var editorStarted = StartEditorAsync();
         string? sessionFolder = null;
-        if (startupFile != null)
+        try
         {
-            await tabs.OpenFileAsync(startupFile);
-            foreach (var more in options.MoreFiles ?? Array.Empty<string>()) await tabs.OpenFileAsync(more);
-        }
-        else
-        {
-            // Only the window opened at startup restores the session; further windows start empty.
-            switch (options.RestoreSession ? settings.FileStartupAction : FileStartupAction.NewFile)
+            if (startupFile != null)
             {
-                case FileStartupAction.RestoreSession:
-                    sessionFolder = await tabs.RestoreSessionAsync();
-                    break;
-                case FileStartupAction.OpenLast:
-                    var last = settings.RecentFiles.FirstOrDefault(File.Exists);
-                    if (last != null) await tabs.OpenFileAsync(last);
-                    break;
+                await tabs.OpenFileAsync(startupFile);
+                foreach (var more in options.MoreFiles ?? Array.Empty<string>()) await tabs.OpenFileAsync(more);
             }
+            else
+            {
+                // Only the window opened at startup restores the session; further windows start empty.
+                switch (options.RestoreSession ? settings.FileStartupAction : FileStartupAction.NewFile)
+                {
+                    case FileStartupAction.RestoreSession:
+                        sessionFolder = await tabs.RestoreSessionAsync();
+                        break;
+                    case FileStartupAction.OpenLast:
+                        var last = settings.RecentFiles.FirstOrDefault(File.Exists);
+                        if (last != null) await tabs.OpenFileAsync(last);
+                        break;
+                }
+            }
+        }
+        finally
+        {
+            documentsStaged.TrySetResult(); // a file that failed to open must not keep the editor waiting
         }
         var startFolder = settings.FolderStartupAction switch
         {
@@ -194,7 +206,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         HookWheelFallback();
         automationStartup.TrySetResult();
 
-        await StartEditorAsync();
+        await editorStarted;
     }
 
     /// <summary>
@@ -204,7 +216,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     /// </summary>
     private async Task StartEditorAsync()
     {
-        Services.Log.Write("shell ready, initializing web view");
+        Services.Log.Write("initializing web view");
         try
         {
             var ensure = EditorView.EnsureCoreWebView2Async().AsTask();
@@ -448,8 +460,9 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
 
     private void RegisterHostFunctions(EditorTransport t)
     {
-        t.Handle("GetSettings", _ =>
+        t.Handle("GetSettings", async _ =>
         {
+            await documentsStaged.Task;
             document!.EditorReady = true;
             var options = settings.EditorOptions();
             options["themeCss"] = Services.ThemeFiles.Read(settings.CustomTheme);
