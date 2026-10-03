@@ -51,13 +51,13 @@ public partial class App : Application
     /// Opens a window with its own editor, tabs and document. The title starts as a unique marker so the page
     /// can find its X11 window among the others (Uno exposes no native handle).
     /// </summary>
-    public static Window CreateWindow(string? initialFile = null, bool restoreSession = false)
+    public static Window CreateWindow(string? initialFile = null, bool restoreSession = false, IReadOnlyList<string>? moreFiles = null)
     {
         var window = new Window { Title = $"Typedown-{Guid.NewGuid():N}" };
         var frame = new Frame();
         window.Content = frame;
         frame.NavigationFailed += OnNavigationFailedStatic;
-        frame.Navigate(typeof(MainPage), new MainPage.StartupOptions(initialFile, restoreSession, window.Title));
+        frame.Navigate(typeof(MainPage), new MainPage.StartupOptions(initialFile, restoreSession, window.Title, moreFiles));
         windows.Add(window);
         window.Closed += (_, _) =>
         {
@@ -78,6 +78,8 @@ public partial class App : Application
         var files = Environment.GetCommandLineArgs().Skip(1)
             .Where(a => !a.StartsWith('-') && System.IO.File.Exists(a))
             .ToList();
+        // macOS: files opened from Finder come as an Apple Event, which arrives before this point at launch.
+        files.AddRange(Services.MacOpenDocuments.Attach(OnFilesFromAnotherLaunch));
         // Opening a document from the file manager starts the program again. If one is already running it takes
         // the file and this process is done; otherwise this one becomes the instance that serves.
         if (Services.SingleInstance.HandOff(files))
@@ -88,7 +90,7 @@ public partial class App : Application
         Services.ThemeFiles.EnsureFolder();
         Services.SingleInstance.FilesRequested += OnFilesFromAnotherLaunch;
         Services.SingleInstance.Listen();
-        CreateWindow(files.FirstOrDefault(), restoreSession: files.Count == 0);
+        CreateWindow(files.FirstOrDefault(), restoreSession: files.Count == 0, moreFiles: files.Skip(1).ToList());
     }
 
     /// <summary>

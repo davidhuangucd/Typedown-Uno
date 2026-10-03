@@ -62,7 +62,7 @@ Grab the package for your platform from the **[latest release](https://github.co
 | Any Linux x64 | `Typedown-*-x86_64.AppImage` | `chmod +x` then run (same two system libraries) |
 | Linux x64 portable | `Typedown-linux-x64-*.tar.gz` | extract, then `./Typedown.Uno` |
 | Windows 10/11 x64 | `Typedown-win-x64.zip` | extract and run; needs the WebView2 runtime (built into Win11) |
-| macOS (Apple Silicon) | `Typedown-osx-arm64.tar.gz` | extract, first run → right-click → Open (unsigned) |
+| macOS (Apple Silicon) | `Typedown-osx-arm64.tar.gz` | extract, move `Typedown.app` to Applications, first run → right-click → Open (unsigned); it is listed under Open With for `.md` files |
 
 On Windows the native **WinUI** build is the better experience: **[flintt/Typedown](https://github.com/flintt/Typedown/releases/latest)**.
 

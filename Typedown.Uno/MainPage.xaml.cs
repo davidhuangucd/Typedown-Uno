@@ -18,7 +18,8 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
     private const string EditorHost = "typedown.editor";
 
     /// <summary>What a freshly created window should open.</summary>
-    public sealed record StartupOptions(string? File, bool RestoreSession, string Marker);
+    /// <param name="MoreFiles">Further files opened together with <paramref name="File"/> (several selected in Finder), each in a tab.</param>
+    public sealed record StartupOptions(string? File, bool RestoreSession, string Marker, IReadOnlyList<string>? MoreFiles = null);
 
     private StartupOptions options = new(null, false, "");
     private Window? window;
@@ -160,6 +161,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         if (startupFile != null)
         {
             await tabs.OpenFileAsync(startupFile);
+            foreach (var more in options.MoreFiles ?? Array.Empty<string>()) await tabs.OpenFileAsync(more);
         }
         else
         {
