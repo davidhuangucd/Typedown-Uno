@@ -277,6 +277,8 @@ public static partial class LocaleTables
         ["RenderPlantUml"] = "PlantUML 図を描画する",
         ["RenderPlantUmlDescription"] = "図のソースを plantuml.com に送信して描画します",
         ["PlantUmlServer"] = "PlantUML サーバー",
+        ["VimMode"] = "Vim キー",
+        ["VimModeDescription"] = "ソースモードで Vim を使用 (:w で保存、:q でタブを閉じる)。読み取りモードでは j/k、gg/G、]]、/ で移動。ビジュアルエディターでは使えません。",
         ["PlantUmlOff"] = "PlantUML 図はオフです（描画するとソースが plantuml.com に送信されます）。設定 > エディターでオンにできます。",
     };
 }

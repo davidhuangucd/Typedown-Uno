@@ -277,6 +277,8 @@ public static partial class LocaleTables
         ["RenderPlantUml"] = "PlantUML-Diagramme zeichnen",
         ["RenderPlantUmlDescription"] = "Sendet den Quelltext des Diagramms zum Zeichnen an plantuml.com",
         ["PlantUmlServer"] = "PlantUML-Server",
+        ["VimMode"] = "Vim-Tasten",
+        ["VimModeDescription"] = "Vim im Quellmodus (:w speichert, :q schließt den Tab); j/k, gg/G, ]] und / zum Navigieren im Lesemodus. Nicht im visuellen Editor.",
         ["PlantUmlOff"] = "PlantUML-Diagramme sind aus (Zeichnen sendet den Quelltext an plantuml.com). Unter Einstellungen > Editor einschalten.",
     };
 }

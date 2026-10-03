@@ -277,6 +277,8 @@ public static partial class LocaleTables
         ["RenderPlantUml"] = "PlantUML 다이어그램 그리기",
         ["RenderPlantUmlDescription"] = "다이어그램 소스를 plantuml.com으로 보내 그립니다",
         ["PlantUmlServer"] = "PlantUML 서버",
+        ["VimMode"] = "Vim 키",
+        ["VimModeDescription"] = "소스 모드에서 Vim 사용(:w 저장, :q 탭 닫기). 읽기 모드에서는 j/k, gg/G, ]], /로 이동합니다. 시각 편집기에서는 사용할 수 없습니다.",
         ["PlantUmlOff"] = "PlantUML 다이어그램이 꺼져 있습니다(그리려면 소스를 plantuml.com으로 보냅니다). 설정 > 편집기에서 켤 수 있습니다.",
     };
 }

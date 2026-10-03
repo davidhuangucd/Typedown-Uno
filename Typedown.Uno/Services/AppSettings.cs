@@ -122,6 +122,11 @@ public sealed class AppSettings : INotifyPropertyChanged
     private string plantUmlServer = "";
     [EditorOption] public string PlantUmlServer { get => plantUmlServer; set => Set(ref plantUmlServer, value ?? ""); }
 
+    // Vim in source mode, Vim-style moving around in reading mode (the page's services/vim); uno-bridge.js leaves
+    // the Ctrl keys Vim needs to the page.
+    private bool vimMode;
+    [EditorOption] public bool VimMode { get => vimMode; set => Set(ref vimMode, value); }
+
     private bool trimUnnecessaryCodeBlockEmptyLines = true;
     [EditorOption] public bool TrimUnnecessaryCodeBlockEmptyLines { get => trimUnnecessaryCodeBlockEmptyLines; set => Set(ref trimUnnecessaryCodeBlockEmptyLines, value); }
 

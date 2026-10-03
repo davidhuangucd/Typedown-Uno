@@ -58,6 +58,7 @@ public static class Loc
         ["AutoPairBracket"] = "Auto-pair brackets", ["AutoPairQuote"] = "Auto-pair quotes", ["AutoPairMarkdown"] = "Auto-pair Markdown syntax",
         ["RenderPlantUml"] = "Draw PlantUML diagrams", ["RenderPlantUmlDescription"] = "Sends the diagram's source to plantuml.com, which draws it",
         ["PlantUmlServer"] = "PlantUML server",
+        ["VimMode"] = "Vim keys", ["VimModeDescription"] = "Vim in source mode (:w saves, :q closes the tab); j/k, gg/G, ]] and / to move around in reading mode. Not in the visual editor.",
         ["TextDirection"] = "Text direction", ["Dirauto"] = "Automatic", ["Dirltr"] = "Left to right", ["Dirrtl"] = "Right to left",
         ["FontFamily"] = "Font family", ["FontFamilyPlaceholder"] = "Empty = default font", ["CustomCss"] = "Custom CSS",
         ["FindSection"] = "Find", ["FindCaseSensitive"] = "Match case", ["FindWholeWord"] = "Whole word", ["FindRegex"] = "Regular expression",

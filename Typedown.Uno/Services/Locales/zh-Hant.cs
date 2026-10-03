@@ -304,6 +304,8 @@ public static partial class LocaleTables
         ["RenderPlantUml"] = "繪製 PlantUML 圖表",
         ["RenderPlantUmlDescription"] = "將圖表原始碼傳送到 plantuml.com，由其繪製",
         ["PlantUmlServer"] = "PlantUML 伺服器",
+        ["VimMode"] = "Vim 按鍵",
+        ["VimModeDescription"] = "原始碼模式下使用 Vim（:w 儲存，:q 關閉索引標籤）；閱讀模式下用 j/k、gg/G、]] 和 / 移動。視覺化編輯器中無法使用。",
         ["PlantUmlOff"] = "PlantUML 圖表已關閉（繪製會將原始碼傳送到 plantuml.com）。可在 設定 > 編輯器 中開啟。",
     };
 }

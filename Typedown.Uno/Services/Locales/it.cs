@@ -277,6 +277,8 @@ public static partial class LocaleTables
         ["RenderPlantUml"] = "Disegna diagrammi PlantUML",
         ["RenderPlantUmlDescription"] = "Invia il sorgente del diagramma a plantuml.com per disegnarlo",
         ["PlantUmlServer"] = "Server PlantUML",
+        ["VimMode"] = "Tasti Vim",
+        ["VimModeDescription"] = "Vim in modalità sorgente (:w salva, :q chiude la scheda); j/k, gg/G, ]] e / per spostarsi in modalità lettura. Non nell'editor visuale.",
         ["PlantUmlOff"] = "I diagrammi PlantUML sono disattivati (disegnarli invia il sorgente a plantuml.com). Attivali in Impostazioni > Editor.",
     };
 }

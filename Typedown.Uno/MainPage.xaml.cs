@@ -626,6 +626,19 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
                 var floatArgs = args?.DeepClone();
                 DispatcherQueue.TryEnqueue(async () => await Post("ShowFloat", new { kind = name, args = floatArgs }));
                 break;
+            case "VimCommand":
+                // Vim's :w, :q, :wq/:x in source mode, as the File menu would (closing asks about unsaved changes).
+                var command = args?["command"]?.GetValue<string>();
+                DispatcherQueue.TryEnqueue(async () =>
+                {
+                    try
+                    {
+                        if (command is "write" or "writeQuit" && document != null && !await document.SaveAsync()) return;
+                        if (command is "quit" or "writeQuit" && tabs != null) await tabs.CloseTabAsync(tabs.ActiveTab);
+                    }
+                    catch (Exception ex) { Services.Log.Write($"vim {command}: {ex.Message}"); }
+                });
+                break;
             case "Shortcut":
                 var key = args?["key"]?.GetValue<string>() ?? "";
                 var ctrl = args?["ctrl"]?.GetValue<bool>() ?? false;

@@ -26,6 +26,8 @@
     var forwarded = [];
     var findShortcut = { key: 'f', ctrl: true, shift: false, alt: false };
     window.addEventListener('keydown', function (e) {
+        // Vim keys (Settings > Vim keys): the Ctrl keys Vim needs in its current mode stay with the page.
+        if (typeof window.__typedownVimWants === 'function' && window.__typedownVimWants(e)) return;
         var ctrl = e.ctrlKey || e.metaKey;
         var key = e.key === 'Tab' ? 'tab' : e.key.toLowerCase();
         if (matches(findShortcut, key, ctrl, e.shiftKey, e.altKey)) { e.preventDefault(); e.stopPropagation(); showFind(); return; }
@@ -194,6 +196,18 @@
         findInput.select();
         if (findInput.value) runSearch();
     }
+    // Vim's find commands in reading mode (the page's services/vim): this bridge draws the find bar, so it answers
+    // them; :w and :q go on to the host as "VimCommand".
+    window.__typedownBridgeVim = function (command) {
+        if (command === 'find') { showFind(); return true; }
+        if (command === 'findNext' || command === 'findPrevious') {
+            if (!findBar || findBar.style.display === 'none' || !findInput.value) { showFind(); return true; }
+            local('Find', { action: command === 'findNext' ? 'next' : 'prev' });
+            return true;
+        }
+        return false;
+    };
+
     function hideFind() {
         if (!findBar) return;
         findBar.style.display = 'none';
