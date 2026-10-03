@@ -105,7 +105,7 @@ Layout is in `PORT_PLAN.md`. The editor build lives in `Typedown.Uno/Assets/Edit
 ## Known limitations
 
 - **Built-in file picker on Linux** — Uno's native picker needs an XDG desktop portal that many desktops lack, so a self-drawn picker is used instead; Windows / macOS use the native dialogs.
-- PDF goes through "print in the browser" — there is no direct PDF generation (WebKitGTK's print API is not exposed through Uno).
+- Print, PDF and picture export go through a second, offscreen web view, since Uno's web view exposes no print API: WebKitGTK on Linux, and on macOS `typedown-webkit-export`, a WKWebView helper inside Typedown.app (a plain-folder macOS build has no helper and says PDF export is unavailable).
 - Image upload (to a picture host) is not implemented.
 - Each window has its own document, tabs and sidebar; session restore applies to the first window at startup only.
 - On Linux the editor is a native WebKit window, so it cannot animate under/over XAML controls; dialogs overlay it.

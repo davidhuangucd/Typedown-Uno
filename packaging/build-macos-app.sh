@@ -36,6 +36,9 @@ done
 
 echo "==> launcher"
 clang -O2 -Wall -arch arm64 -mmacosx-version-min=12.0 -o "$APP/Contents/MacOS/Typedown" "$(dirname "$0")/macos-launcher.c"
+echo "==> print and export helper"
+clang -O2 -Wall -fobjc-arc -arch arm64 -mmacosx-version-min=12.0 -framework AppKit -framework WebKit \
+  -o "$APP/Contents/MacOS/typedown-webkit-export" "$(dirname "$0")/macos-webkit-export.m"
 
 echo "==> icon"
 ICONSET=$(mktemp -d)/Typedown.iconset

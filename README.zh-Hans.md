@@ -105,7 +105,7 @@ dotnet publish Typedown.Uno/Typedown.Uno.csproj -f net9.0-desktop -c Release -r 
 ## 已知限制
 
 - **Linux 上使用内置文件选择器**：Uno 的系统选择器依赖 XDG desktop portal，很多桌面装不全，所以一律用自绘选择器；Windows / macOS 仍用系统原生对话框。
-- PDF 走「在浏览器中打印」，没有直接生成 PDF（WebKitGTK 的打印 API 没通过 Uno 暴露）。
+- 打印、导出 PDF 和导出图片都通过另一个后台网页视图完成（Uno 的网页视图没有打印接口）：Linux 上用 WebKitGTK，macOS 上用 Typedown.app 里的 `typedown-webkit-export`（基于 WKWebView 的辅助程序；不打包成 .app 的 macOS 文件夹版没有它，会提示无法导出 PDF）。
 - 图床上传未实现。
 - 每个窗口有独立的文档、标签和侧栏；会话恢复只作用于启动时的第一个窗口。
 - Linux 上编辑器是原生 WebKit 窗口，无法与 XAML 控件重叠动画；对话框会覆盖在它上面。

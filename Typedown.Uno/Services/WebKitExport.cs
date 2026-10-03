@@ -3,7 +3,8 @@ using System.Runtime.InteropServices;
 namespace Typedown.Uno.Services;
 
 /// <summary>
-/// Printing, PDF export and picture export on Linux, straight through WebKitGTK.
+/// Printing, PDF export and picture export on Linux, straight through WebKitGTK; on macOS through
+/// typedown-webkit-export, a helper in Typedown.app that does the same with WKWebView (packaging/macos-webkit-export.m).
 ///
 /// Uno's web view exposes nothing of the kind, so the page is loaded into a second, offscreen WebKitGTK view
 /// and that view's print operation is used: with a print dialog for "Print…", and with the settings pointed at
@@ -64,15 +65,58 @@ public static class WebKitExport
     private const int SnapshotWholeDocument = 1; // WEBKIT_SNAPSHOT_REGION_FULL_DOCUMENT
     private const int CairoStatusSuccess = 0;
 
-    public static bool Available => OperatingSystem.IsLinux();
+    public static bool Available => OperatingSystem.IsLinux() || MacHelper != null;
 
     /// <summary>Renders an HTML file to a PDF. Returns false if WebKitGTK could not do it.</summary>
     public static Task<bool> ExportPdfAsync(string htmlPath, string pdfPath, double marginMm = 12)
-        => RunAsync(htmlPath, pdfPath, marginMm, dialog: false);
+        => OperatingSystem.IsMacOS()
+            ? RunMacHelperAsync(htmlPath, pdfPath, "pdf", htmlPath, pdfPath, Number(marginMm))
+            : RunAsync(htmlPath, pdfPath, marginMm, dialog: false);
 
     /// <summary>Opens the system print dialog for an HTML file.</summary>
     public static Task<bool> PrintAsync(string htmlPath, double marginMm = 12)
-        => RunAsync(htmlPath, null, marginMm, dialog: true);
+        => OperatingSystem.IsMacOS()
+            ? RunMacHelperAsync(htmlPath, null, "print", htmlPath, Number(marginMm))
+            : RunAsync(htmlPath, null, marginMm, dialog: true);
+
+    /// <summary>Contents/MacOS/typedown-webkit-export next to the launcher, when running from Typedown.app.</summary>
+    private static string? MacHelper
+    {
+        get
+        {
+            if (!OperatingSystem.IsMacOS()) return null;
+            // The published files are in Contents/Resources/app (packaging/build-macos-app.sh).
+            var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "MacOS", "typedown-webkit-export"));
+            return File.Exists(path) ? path : null;
+        }
+    }
+
+    private static string Number(double value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>Runs the macOS helper; true when it exits with 0 and, for a file, the file is there.</summary>
+    private static async Task<bool> RunMacHelperAsync(string htmlPath, string? outputPath, params string[] args)
+    {
+        if (MacHelper is not { } helper || !File.Exists(htmlPath)) return false;
+        try
+        {
+            var start = new System.Diagnostics.ProcessStartInfo(helper) { RedirectStandardError = true, UseShellExecute = false };
+            foreach (var arg in args) start.ArgumentList.Add(arg);
+            using var process = System.Diagnostics.Process.Start(start)!;
+            var errors = process.StandardError.ReadToEndAsync();
+            // The print panel waits for the user; an export finishes in seconds.
+            using var timeout = new CancellationTokenSource(outputPath == null ? TimeSpan.FromHours(1) : TimeSpan.FromSeconds(60));
+            try { await process.WaitForExitAsync(timeout.Token); }
+            catch (OperationCanceledException) { process.Kill(); Log.Write($"typedown-webkit-export {args[0]} timed out"); return false; }
+            var stderr = (await errors).Trim();
+            if (process.ExitCode != 0) Log.Write($"typedown-webkit-export {args[0]} failed ({process.ExitCode}){(stderr.Length > 0 ? ": " + stderr : "")}");
+            return process.ExitCode == 0 && (outputPath == null || File.Exists(outputPath));
+        }
+        catch (Exception ex)
+        {
+            Log.Error("typedown-webkit-export", ex);
+            return false;
+        }
+    }
 
     // The delegates are called from the GTK main loop and must outlive this method, so they are held for the
     // duration of the operation rather than left to the collector.
@@ -193,6 +237,7 @@ public static class WebKitExport
     /// <summary>Renders an HTML file to a PNG: the whole document, however long it is, in one picture.</summary>
     public static Task<bool> ExportImageAsync(string htmlPath, string pngPath, int width = 1000, int height = 900)
     {
+        if (OperatingSystem.IsMacOS()) return RunMacHelperAsync(htmlPath, pngPath, "png", htmlPath, pngPath, width.ToString(System.Globalization.CultureInfo.InvariantCulture));
         var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!Available || !File.Exists(htmlPath))
         {
