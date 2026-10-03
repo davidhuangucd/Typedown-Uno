@@ -24,6 +24,15 @@ SHORT=$(printf '%s' "$VERSION" | sed -E 's/^([0-9]+(\.[0-9]+){0,2}).*/\1/')
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/app"
 cp -R "$PUBLISH/." "$APP/Contents/Resources/app/"
+# Inside a bundle Uno looks ms-appx:/// files up under <app folder>/Resources (MacSkiaHost sets
+# StorageFile.ResourcePathBase to InstalledPath + "/Resources"), where nothing is: the Fluent symbol font and
+# Open Sans did not load, and every icon drew as "?". Links to the app folder's own directories put them there.
+[ -e "$APP/Contents/Resources/app/Resources" ] && { echo "build-macos-app: the published folder has a Resources entry" >&2; exit 1; }
+mkdir "$APP/Contents/Resources/app/Resources"
+for dir in "$APP/Contents/Resources/app"/*/; do
+  name=$(basename "$dir")
+  [ "$name" = Resources ] || ln -s "../$name" "$APP/Contents/Resources/app/Resources/$name"
+done
 
 echo "==> launcher"
 clang -O2 -Wall -arch arm64 -mmacosx-version-min=12.0 -o "$APP/Contents/MacOS/Typedown" "$(dirname "$0")/macos-launcher.c"
