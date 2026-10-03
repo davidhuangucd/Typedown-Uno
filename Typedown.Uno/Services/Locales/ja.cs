@@ -274,5 +274,8 @@ public static partial class LocaleTables
         ["HighlightAutomationChanges"] = "プログラムによる変更を強調表示",
         ["HighlightAutomationChangesDescription"] = "接続中のプログラムが変更したテキストを一時的に強調表示し、どこが変わったかを確認できるようにします。",
         ["FirstEditWarning"] = "ビジュアルモードでこの文書を編集すると、生の HTML の一部が書き換えられることがあります。そのまま保つには、ソースモードで編集してください。",
+        ["RenderPlantUml"] = "PlantUML 図を描画する",
+        ["RenderPlantUmlDescription"] = "図のソースを plantuml.com に送信して描画します",
+        ["PlantUmlOff"] = "PlantUML 図はオフです（描画するとソースが plantuml.com に送信されます）。設定 > エディターでオンにできます。",
     };
 }

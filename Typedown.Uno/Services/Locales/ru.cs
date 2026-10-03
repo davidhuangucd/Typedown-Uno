@@ -274,5 +274,8 @@ public static partial class LocaleTables
         ["HighlightAutomationChanges"] = "Выделять изменения, сделанные программами",
         ["HighlightAutomationChangesDescription"] = "Ненадолго выделяет текст, изменённый подключённой программой, чтобы было видно, что поменялось.",
         ["FirstEditWarning"] = "Редактирование этого документа в визуальном режиме может изменить часть его HTML-кода. Чтобы сохранить его как есть, редактируйте в режиме исходного кода.",
+        ["RenderPlantUml"] = "Рисовать диаграммы PlantUML",
+        ["RenderPlantUmlDescription"] = "Отправляет исходный код диаграммы на plantuml.com для отрисовки",
+        ["PlantUmlOff"] = "Диаграммы PlantUML отключены (для отрисовки код отправляется на plantuml.com). Включите их в разделе Настройки > Редактор.",
     };
 }

@@ -130,6 +130,7 @@ public sealed partial class SettingsDialog : ContentDialog
         Toggle("AutoPairBracket", settings.AutoPairBracket, v => settings.AutoPairBracket = v);
         Toggle("AutoPairQuote", settings.AutoPairQuote, v => settings.AutoPairQuote = v);
         Toggle("AutoPairMarkdown", settings.AutoPairMarkdownSyntax, v => settings.AutoPairMarkdownSyntax = v);
+        Toggle("RenderPlantUml", settings.RenderPlantUml, v => settings.RenderPlantUml = v, "RenderPlantUmlDescription");
         MultilineText("CustomCss", settings.CustomCss, v => settings.CustomCss = v);
 
         Section("ImageSection");

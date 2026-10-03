@@ -274,5 +274,8 @@ public static partial class LocaleTables
         ["HighlightAutomationChanges"] = "Realçar alterações feitas por programas",
         ["HighlightAutomationChangesDescription"] = "Realça brevemente o texto alterado por um programa ligado, para que veja o que mudou.",
         ["FirstEditWarning"] = "Editar este documento no modo visual pode reescrever parte do seu HTML. Para mantê-lo como está, edite-o no modo de código-fonte.",
+        ["RenderPlantUml"] = "Desenhar diagramas PlantUML",
+        ["RenderPlantUmlDescription"] = "Envia o código do diagrama para plantuml.com para desenhá-lo",
+        ["PlantUmlOff"] = "Os diagramas PlantUML estão desativados (desenhar envia o código para plantuml.com). Ative-os em Configurações > Editor.",
     };
 }

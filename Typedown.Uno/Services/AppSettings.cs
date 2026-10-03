@@ -113,6 +113,11 @@ public sealed class AppSettings : INotifyPropertyChanged
     private bool autoPairMarkdownSyntax = true;
     [EditorOption] public bool AutoPairMarkdownSyntax { get => autoPairMarkdownSyntax; set => Set(ref autoPairMarkdownSyntax, value); }
 
+    // PlantUML blocks are drawn by plantuml.com from their source, so the text leaves the machine: off until the person
+    // turns it on. Off, the editor shows a line saying so instead of the diagram.
+    private bool renderPlantUml;
+    [EditorOption] public bool RenderPlantUml { get => renderPlantUml; set => Set(ref renderPlantUml, value); }
+
     private bool trimUnnecessaryCodeBlockEmptyLines = true;
     [EditorOption] public bool TrimUnnecessaryCodeBlockEmptyLines { get => trimUnnecessaryCodeBlockEmptyLines; set => Set(ref trimUnnecessaryCodeBlockEmptyLines, value); }
 

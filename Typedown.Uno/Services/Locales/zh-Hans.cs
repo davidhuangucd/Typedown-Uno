@@ -301,5 +301,8 @@ public static partial class LocaleTables
         ["HighlightAutomationChanges"] = "高亮程序所做的更改",
         ["HighlightAutomationChangesDescription"] = "短暂高亮已连接的程序修改过的文字，让你看清哪里变了。",
         ["FirstEditWarning"] = "在可视模式下编辑这份文档，可能会改写其中的部分原始 HTML。需要保持原样时，请在源码模式下编辑。",
+        ["RenderPlantUml"] = "绘制 PlantUML 图表",
+        ["RenderPlantUmlDescription"] = "把图表源码发送到 plantuml.com，由它绘制",
+        ["PlantUmlOff"] = "PlantUML 图表已关闭（绘制会把源码发送到 plantuml.com）。可在 设置 > 编辑器 中打开。",
     };
 }

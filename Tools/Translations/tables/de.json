@@ -266,5 +266,8 @@
   "LocalAutomationDescription": "Programme, die Sie auf diesem Computer ausführen, können geöffnete Dokumente lesen und bearbeiten. Der Fenstertitel zeigt an, wenn eines verbunden ist.",
   "HighlightAutomationChanges": "Änderungen durch Programme hervorheben",
   "HighlightAutomationChangesDescription": "Hebt den von einem verbundenen Programm geänderten Text kurz hervor, damit Sie sehen, was sich geändert hat.",
-  "FirstEditWarning": "Beim Bearbeiten im visuellen Modus kann ein Teil des HTML-Codes dieses Dokuments umgeschrieben werden. Um es unverändert zu lassen, bearbeiten Sie es im Quellmodus."
+  "FirstEditWarning": "Beim Bearbeiten im visuellen Modus kann ein Teil des HTML-Codes dieses Dokuments umgeschrieben werden. Um es unverändert zu lassen, bearbeiten Sie es im Quellmodus.",
+  "RenderPlantUml": "PlantUML-Diagramme zeichnen",
+  "RenderPlantUmlDescription": "Sendet den Quelltext des Diagramms zum Zeichnen an plantuml.com",
+  "PlantUmlOff": "PlantUML-Diagramme sind aus (Zeichnen sendet den Quelltext an plantuml.com). Unter Einstellungen > Editor einschalten."
 }
