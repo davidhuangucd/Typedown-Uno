@@ -78,7 +78,8 @@ jobs:
         shell: bash
         run: |
           version="${GITHUB_REF_NAME#v}"
-          [[ "$version" =~ ^[0-9] ]] || version="0.0.0-$(date +%Y%m%d)"
+          # a tag like v1.2.0; a pull request's ref (2/merge) is not a version and would put a / in the file names
+          [[ "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?([-+][0-9A-Za-z.-]+)?$ ]] || version="0.0.0-$(date +%Y%m%d)"
           ./packaging/build-macos-app.sh "publish/Typedown-${{ matrix.name }}" "$version" "publish/app-${{ matrix.name }}"
           rm -rf "publish/Typedown-${{ matrix.name }}"
           mkdir "publish/Typedown-${{ matrix.name }}"
@@ -107,7 +108,8 @@ jobs:
           # appimagetool is itself an AppImage and the runners have no libfuse2; this makes it self-extract.
           export APPIMAGE_EXTRACT_AND_RUN=1
           version="${GITHUB_REF_NAME#v}"
-          [[ "$version" =~ ^[0-9] ]] || version="0.0.0-$(date +%Y%m%d)"
+          # a tag like v1.2.0; a pull request's ref (2/merge) is not a version and would put a / in the file names
+          [[ "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?([-+][0-9A-Za-z.-]+)?$ ]] || version="0.0.0-$(date +%Y%m%d)"
           ./packaging/build-linux-packages.sh "publish/Typedown-${{ matrix.name }}" "$version" dist
 
       - uses: actions/upload-artifact@v4
