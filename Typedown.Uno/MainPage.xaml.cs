@@ -1037,7 +1037,7 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         file.Items.Add(new MenuFlyoutSeparator());
         file.Items.Add(Item("Settings", async () => await ShowSettingsAsync(), ShortcutCommand.Settings));
         file.Items.Add(Item("CloseTab", async () => { if (tabs != null) await tabs.CloseTabAsync(tabs.ActiveTab); }, ShortcutCommand.CloseTab));
-        file.Items.Add(Item("Exit", async () => await ExitAsync(), ShortcutCommand.Exit));
+        file.Items.Add(Item("Exit", async () => await ExitAsync(quit: true), ShortcutCommand.Exit));
         MainMenu.Items.Add(file);
 
         var edit = new MenuBarItem { Title = Loc.Get("Edit") };
@@ -2304,7 +2304,11 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         }
     }
 
-    private async Task ExitAsync()
+    /// <summary>
+    /// Closes this window. <paramref name="quit"/> (File > Exit) also ends the program when this is its last window,
+    /// which closing the window alone no longer does on macOS (Services.MacKeepRunning).
+    /// </summary>
+    private async Task ExitAsync(bool quit = false)
     {
         if (closing) return;
         if (tabs != null && !await tabs.AskToSaveAllAsync()) return;
@@ -2312,9 +2316,11 @@ public sealed partial class MainPage : Page, DocumentViewModel.IHostUi
         tabs?.SaveSession(workFolder);
         await Task.WhenAll(settings.FlushAsync(), SessionMemory.FlushAsync(), CursorMemory.FlushAsync(), HedgeDocShareMemory.FlushAsync());
         document?.Dispose();
-        // Closing the window is enough: the app exits once the last one is gone.
+        // Closing the window is enough: the app exits once the last one is gone (except on macOS, see above).
+        var last = App.Windows.Count <= 1;
         if (window != null) window.Close();
         else Application.Current.Exit();
+        if (quit && last && Services.MacKeepRunning.Active) Application.Current.Exit();
     }
 
     /// <summary>Opens another window, optionally with a file already loaded.</summary>

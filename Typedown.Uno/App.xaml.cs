@@ -41,6 +41,9 @@ public partial class App : Application
 
     private static readonly List<Window> windows = new();
 
+    /// <summary>The UI thread's queue; on macOS it outlives every window (see Services.MacKeepRunning).</summary>
+    private static Microsoft.UI.Dispatching.DispatcherQueue? uiQueue;
+
     public static IReadOnlyList<Window> Windows => windows;
 
     /// <summary>Looks up the window a page belongs to (a page only knows its XamlRoot).</summary>
@@ -62,7 +65,7 @@ public partial class App : Application
         window.Closed += (_, _) =>
         {
             windows.Remove(window);
-            if (windows.Count == 0) Current.Exit();
+            if (windows.Count == 0 && !Services.MacKeepRunning.Active) Current.Exit();
         };
         window.SetWindowIcon();
         window.Activate();
@@ -75,6 +78,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        uiQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         var files = Environment.GetCommandLineArgs().Skip(1)
             .Where(a => !a.StartsWith('-') && System.IO.File.Exists(a))
             .ToList();
@@ -91,18 +95,26 @@ public partial class App : Application
         Services.SingleInstance.FilesRequested += OnFilesFromAnotherLaunch;
         Services.SingleInstance.Listen();
         CreateWindow(files.FirstOrDefault(), restoreSession: files.Count == 0, moreFiles: files.Skip(1).ToList());
+        // A click on the Dock icon while the program runs without a window opens one, as a fresh start would.
+        Services.MacKeepRunning.Attach(() => uiQueue?.TryEnqueue(() => { if (windows.Count == 0) CreateWindow(restoreSession: true); }));
     }
 
     /// <summary>
     /// Another launch handed us its arguments. With "open files in a tab" the file joins the window that is
     /// already open, which is the whole point of the setting; without it, it gets a window of its own. A launch
-    /// with no file at all just brings the existing window forward.
+    /// with no file at all just brings the existing window forward. On macOS the program may be running with no
+    /// window at all (Services.MacKeepRunning); then the files get a new one, as at a fresh start.
     /// </summary>
     private static void OnFilesFromAnotherLaunch(IReadOnlyList<string> files)
     {
-        var window = windows.LastOrDefault() ?? MainWindow;
-        window?.DispatcherQueue.TryEnqueue(async () =>
+        uiQueue?.TryEnqueue(async () =>
         {
+            var window = windows.LastOrDefault();
+            if (window == null)
+            {
+                CreateWindow(files.FirstOrDefault(), restoreSession: files.Count == 0, moreFiles: files.Skip(1).ToList());
+                return;
+            }
             var page = (window.Content as Frame)?.Content as MainPage;
             foreach (var file in files)
             {

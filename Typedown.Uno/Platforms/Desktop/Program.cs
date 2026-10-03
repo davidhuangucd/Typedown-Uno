@@ -10,6 +10,7 @@ internal class Program
         App.InitializeLogging();
         Services.ExitCleanup.HandleTerminate();
         Services.MacOpenDocuments.Install();
+        Services.MacKeepRunning.Install();
 
         var host = UnoPlatformHostBuilder.Create()
             .App(() => new App())
